@@ -43,16 +43,17 @@
             background: #ffdae3;
             background-image: radial-gradient(#ffdae3 20%, #ffc1d1 100%);
             margin: 0;
-            height: 100vh;
-            overflow: hidden;
+            min-height: 100vh;
+            overflow-x: hidden;
             display: flex;
             align-items: center;
             justify-content: center;
+            padding: 10px;
         }
 
         .main-title {
             font-family: var(--title-font) !important;
-            font-size: 3rem;
+            font-size: 2.5rem;
             color: white;
             -webkit-text-stroke: 1.5px var(--theme-pink);
             text-shadow: 3px 3px 0px var(--theme-pink);
@@ -60,26 +61,49 @@
             text-align: center;
         }
 
+        @media (max-width: 768px) {
+            .main-title { font-size: 1.8rem; }
+        }
+
         .app-shell {
             width: 95vw;
+            max-width: 1200px;
             height: 85vh;
             background: white;
             border-radius: 2.5rem;
-            border: 10px solid white;
+            border: 8px solid white;
             box-shadow: 0 30px 60px rgba(255, 133, 161, 0.3);
             display: flex;
             overflow: hidden;
             position: relative;
         }
 
+        @media (max-width: 768px) {
+            .app-shell {
+                flex-direction: column;
+                height: 90vh;
+                border-radius: 1.5rem;
+                border-width: 4px;
+            }
+        }
+
         .preview-pane {
-            flex: 0 0 42%;
+            flex: 0 0 45%;
             background: #fffafa;
             position: relative;
             display: flex;
             flex-direction: column;
             border-right: 4px solid #ffecf0;
             touch-action: none;
+            overflow: hidden;
+        }
+
+        @media (max-width: 768px) {
+            .preview-pane {
+                flex: 0 0 50%;
+                border-right: none;
+                border-bottom: 4px solid #ffecf0;
+            }
         }
 
         .doll-container {
@@ -110,36 +134,37 @@
             display: flex;
             flex-direction: column;
             background: white;
+            overflow: hidden;
         }
 
         .tab-button {
-            padding: 1rem 0;
-            font-size: 1.2rem;
+            padding: 1rem 0.5rem;
+            font-size: 1.1rem;
             transition: all 0.2s;
             position: relative;
             font-weight: 900;
+            white-space: nowrap;
         }
         .tab-button.active {
             color: var(--theme-pink);
-            transform: scale(1.1);
+            transform: scale(1.05);
         }
         .tab-button.active::after {
             content: '';
             position: absolute;
             bottom: 4px;
-            left: 20%;
-            right: 20%;
+            left: 10%;
+            right: 10%;
             height: 4px;
             background: var(--theme-pink);
             border-radius: 2px;
         }
 
-        /* 选项框动效 */
         .item-grid-card {
             aspect-ratio: 1;
             background: #fff7f9;
             border: 3px solid transparent;
-            border-radius: 1.5rem;
+            border-radius: 1.2rem;
             transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
             display: flex;
             flex-direction: column;
@@ -158,29 +183,13 @@
             box-shadow: 0 0 15px rgba(255, 133, 161, 0.2);
         }
 
-        @keyframes polaroidIn {
-            0% { transform: scale(0.5) rotate(-15deg); opacity: 0; }
-            100% { transform: scale(1) rotate(0deg); opacity: 1; }
-        }
-        .polaroid-animate {
-            animation: polaroidIn 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-        }
-
-        .polaroid-frame {
-            background: white;
-            padding: 15px 15px 35px 15px;
-            box-shadow: 0 25px 50px rgba(0,0,0,0.15);
-            border-radius: 4px;
-            width: 340px;
-        }
-
         .photo-btn {
             background: var(--theme-pink);
             color: white !important;
-            padding: 0.75rem 2.5rem;
+            padding: 0.6rem 1.5rem;
             border-radius: 99px;
             box-shadow: 0 5px 15px rgba(255, 133, 161, 0.4);
-            font-size: 1.2rem;
+            font-size: 1rem;
         }
 
         .no-scrollbar::-webkit-scrollbar { display: none; }
@@ -191,31 +200,34 @@
             -webkit-backdrop-filter: blur(20px);
         }
 
-        /* 优化后的拍立得标题：使用汉仪PP体简 + 真正的白色外描边 */
+        .polaroid-frame {
+            background: white;
+            padding: 12px 12px 30px 12px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.15);
+            border-radius: 4px;
+            width: 85vw;
+            max-width: 320px;
+        }
+
         .polaroid-title {
             font-family: 'SecondaryFont', sans-serif !important;
-            font-size: 2.5rem;
+            font-size: 1.8rem;
             font-weight: bold;
             color: var(--theme-pink);
-            -webkit-text-stroke: 0; /* 禁用内描边 */
-            /* 使用多重阴影模拟厚实的外描边效果 */
+            text-align: center;
             text-shadow: 
                 -2px -2px 0 #fff,  
                  2px -2px 0 #fff,
                 -2px  2px 0 #fff,
                  2px  2px 0 #fff,
-                 0px  3px 0 #fff,
-                 3px  0px 0 #fff,
-                 0px -3px 0 #fff,
-                -3px  0px 0 #fff,
-                4px 4px 8px rgba(255, 133, 161, 0.4);
+                3px 3px 6px rgba(255, 133, 161, 0.4);
         }
     </style>
 </head>
 <body>
-    <div class="flex flex-col items-center">
+    <div class="flex flex-col items-center w-full">
         <h1 class="main-title">宇宙大明星换衣间</h1>
-        <div id="root"></div>
+        <div id="root" class="w-full flex justify-center"></div>
     </div>
 
     <script type="text/babel">
@@ -295,6 +307,7 @@
             const onPointerDown = (e) => {
                 if (activeTab !== 'accessories' || !outfit.accessory) return;
                 setIsDragging(true);
+                const rect = e.currentTarget.getBoundingClientRect();
                 dragOffset.current = { x: e.clientX - outfit.accPos.x, y: e.clientY - outfit.accPos.y };
                 e.currentTarget.setPointerCapture(e.pointerId);
             };
@@ -308,6 +321,18 @@
             };
 
             const onPointerUp = () => setIsDragging(false);
+
+            const handleRandom = () => {
+                const randomItem = (arr) => arr[Math.floor(Math.random() * arr.length)];
+                setOutfit(p => ({
+                    ...p,
+                    hair: randomItem(ASSETS.hairstyles),
+                    face: randomItem(ASSETS.faces),
+                    clothes: randomItem(ASSETS.clothes),
+                    background: randomItem(ASSETS.backgrounds),
+                    set: null // 随机时重置套装，避免层级混乱
+                }));
+            };
 
             const handleSave = async () => {
                 if (!photoAreaRef.current || isSaving) return;
@@ -355,35 +380,35 @@
 
             return (
                 <div className="app-shell">
-                    {/* 左：预览区 */}
+                    {/* 预览区 */}
                     <div className="preview-pane">
-                        <div className="flex-1 p-8 flex items-center justify-center relative">
-                            <div className="w-full aspect-[8/10] bg-white rounded-[2rem] shadow-2xl overflow-hidden border-4 border-white">
+                        <div className="flex-1 p-4 md:p-8 flex items-center justify-center relative overflow-hidden">
+                            <div className="w-full max-w-[360px] aspect-[8/10] bg-white rounded-[1.5rem] md:rounded-[2rem] shadow-2xl overflow-hidden border-4 border-white relative">
                                 {renderDollLayers()}
                                 {activeTab === 'accessories' && outfit.accessory && (
-                                    <div className="absolute top-12 left-1/2 -translate-x-1/2 bg-white/90 px-5 py-1.5 rounded-full text-sm font-black text-pink-500 shadow-md">
+                                    <div className="absolute top-4 left-1/2 -translate-x-1/2 bg-white/90 px-3 py-1 rounded-full text-[10px] md:text-sm font-black text-pink-500 shadow-md whitespace-nowrap z-20">
                                         ✨ 拖动饰品调整位置
                                     </div>
                                 )}
                             </div>
                         </div>
-                        <div className="h-24 flex items-center justify-center gap-8">
+                        <div className="h-20 md:h-24 flex items-center justify-center gap-4 md:gap-8 bg-white/50 backdrop-blur-sm">
                             <button onClick={() => setShowPhoto(true)} className="photo-btn font-black">📷 拍立得</button>
-                            <button onClick={() => setOutfit(p => ({...p, hair: ASSETS.hairstyles[Math.floor(Math.random()*8)], face: ASSETS.faces[Math.floor(Math.random()*5)], clothes: ASSETS.clothes[Math.floor(Math.random()*8)]}))} className="px-6 py-2 bg-white rounded-full text-amber-500 font-black border-2 border-amber-100 shadow-sm active:scale-95 transition-transform">✨ 随机</button>
+                            <button onClick={handleRandom} className="px-5 py-2 bg-white rounded-full text-amber-500 font-black border-2 border-amber-100 shadow-sm active:scale-95 transition-transform text-sm md:text-base">✨ 随机</button>
                         </div>
                     </div>
 
-                    {/* 右：控制区 */}
+                    {/* 控制区 */}
                     <div className="control-pane">
-                        <div className="flex border-b overflow-x-auto no-scrollbar bg-pink-50/20">
+                        <div className="flex border-b overflow-x-auto no-scrollbar bg-pink-50/20 sticky top-0 z-10">
                             {['hairstyles', 'faces', 'clothes', 'sets', 'accessories', 'backgrounds'].map(tab => (
-                                <button key={tab} onClick={() => setActiveTab(tab)} className={`tab-button flex-1 min-w-[80px] ${activeTab === tab ? 'active' : ''}`}>
+                                <button key={tab} onClick={() => setActiveTab(tab)} className={`tab-button flex-1 min-w-[70px] ${activeTab === tab ? 'active' : ''}`}>
                                     {tab==='hairstyles'?'发型':tab==='faces'?'表情':tab==='clothes'?'衣服':tab==='sets'?'套装':tab==='accessories'?'饰品':'背景'}
                                 </button>
                             ))}
                         </div>
-                        <div className="flex-1 overflow-y-auto p-6 no-scrollbar">
-                            <div className="grid grid-cols-3 gap-4">
+                        <div className="flex-1 overflow-y-auto p-4 md:p-6 no-scrollbar">
+                            <div className="grid grid-cols-3 gap-3 md:gap-4">
                                 {ASSETS[activeTab].map(item => (
                                     <div key={item.id} onClick={() => {
                                         const keyMap = { hairstyles:'hair', faces:'face', clothes:'clothes', sets:'set', accessories:'accessory', backgrounds:'background' };
@@ -396,8 +421,8 @@
                                             return n;
                                         });
                                     }} className={`item-grid-card cursor-pointer shadow-sm hover:shadow-md transition-all ${ (outfit.hair?.id===item.id||outfit.face?.id===item.id||outfit.clothes?.id===item.id||outfit.set?.id===item.id||outfit.accessory?.id===item.id||outfit.background?.id===item.id) ? 'selected' : ''}`}>
-                                        <img src={getAssetUrl(item.url)} className="w-16 h-16 object-contain pointer-events-none" />
-                                        <span className="text-[0.75rem] mt-1 font-black leading-tight text-center">{item.name}</span>
+                                        <img src={getAssetUrl(item.url)} className="w-12 h-12 md:w-16 md:h-16 object-contain pointer-events-none" />
+                                        <span className="text-[0.65rem] md:text-[0.75rem] mt-1 font-black leading-tight text-center">{item.name}</span>
                                     </div>
                                 ))}
                             </div>
@@ -406,20 +431,20 @@
 
                     {/* 拍立得弹窗 */}
                     {showPhoto && (
-                        <div className="fixed inset-0 z-50 bg-pink-200/50 backdrop-blur-md flex flex-col items-center justify-center p-4" onClick={(e) => e.target === e.currentTarget && setShowPhoto(false)}>
-                            <div className="polaroid-animate flex flex-col items-center">
-                                <h2 className="polaroid-title mb-6">
+                        <div className="fixed inset-0 z-[150] bg-pink-200/60 backdrop-blur-md flex flex-col items-center justify-center p-4" onClick={(e) => e.target === e.currentTarget && setShowPhoto(false)}>
+                            <div className="flex flex-col items-center animate-[zoomIn_0.4s_ease-out]">
+                                <h2 className="polaroid-title mb-4">
                                     金希澈闪亮登场
                                 </h2>
-                                <div ref={photoAreaRef} className="polaroid-frame mb-8">
+                                <div ref={photoAreaRef} className="polaroid-frame mb-6">
                                     <div className="aspect-[8/10] bg-gray-50 overflow-hidden relative">
                                         {renderDollLayers()}
                                     </div>
                                 </div>
                             </div>
                             <div className="flex gap-4">
-                                <button onClick={() => setShowPhoto(false)} className="px-10 py-3 bg-white rounded-full font-black text-gray-500 shadow-md active:scale-95 transition-transform">返回</button>
-                                <button onClick={handleSave} className="px-10 py-3 bg-pink-500 text-white rounded-full font-black shadow-lg active:scale-95 transition-transform">
+                                <button onClick={() => setShowPhoto(false)} className="px-8 py-2.5 bg-white rounded-full font-black text-gray-500 shadow-md active:scale-95 transition-transform">返回</button>
+                                <button onClick={handleSave} className="px-8 py-2.5 bg-pink-500 text-white rounded-full font-black shadow-lg active:scale-95 transition-transform">
                                     {isSaving ? '正在保存...' : '保存到相册'}
                                 </button>
                             </div>
@@ -428,10 +453,10 @@
 
                     {/* 开屏页 */}
                     {showHint && (
-                        <div className="fixed inset-0 z-[100] backdrop-only-blur flex flex-col items-center justify-center" onClick={() => setShowHint(false)}>
-                            <div className="relative flex flex-col items-center max-w-sm">
-                                <img src={getAssetUrl(START_HINT)} className="w-80 drop-shadow-[0_20px_50px_rgba(255,133,161,0.5)] mb-12" />
-                                <button className="px-12 py-4 bg-white rounded-full text-pink-500 font-black text-2xl shadow-2xl border-4 border-pink-200 active:scale-90 transition-all">
+                        <div className="fixed inset-0 z-[200] backdrop-only-blur flex flex-col items-center justify-center p-6" onClick={() => setShowHint(false)}>
+                            <div className="relative flex flex-col items-center max-w-sm w-full">
+                                <img src={getAssetUrl(START_HINT)} className="w-64 md:w-80 drop-shadow-[0_20px_50px_rgba(255,133,161,0.5)] mb-8" />
+                                <button className="px-10 py-3 bg-white rounded-full text-pink-500 font-black text-xl md:text-2xl shadow-2xl border-4 border-pink-200 active:scale-90 transition-all">
                                     点击开始游戏
                                 </button>
                             </div>
