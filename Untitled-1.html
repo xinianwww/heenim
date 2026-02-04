@@ -1,0 +1,312 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>卡通男生套装换装秀</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body {
+            margin: 0;
+            overflow: hidden;
+            background-color: #f0f9ff; 
+            background-image: url('https://raw.githubusercontent.com/xinianwww/heenim/main/%E8%83%8C%E6%99%AF.png');
+            background-size: cover;
+            background-position: center;
+            background-repeat: no-repeat;
+            font-family: 'PingFang SC', 'Microsoft YaHei', sans-serif;
+            user-select: none;
+            touch-action: manipulation;
+        }
+        #game-container {
+            position: relative;
+            width: 100vw;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+        canvas {
+            display: block;
+            max-width: 100%;
+            max-height: 100%;
+            cursor: pointer;
+            background: transparent; 
+        }
+        .ui-right {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            pointer-events: none;
+        }
+        .btn-reset {
+            pointer-events: auto;
+            background: rgba(255, 255, 255, 0.8);
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+            transition: all 0.2s;
+            cursor: pointer;
+            border: 1px solid rgba(255,255,255,0.5);
+            backdrop-filter: blur(4px);
+        }
+        .btn-reset:active {
+            transform: rotate(-45deg) scale(0.9);
+            background: #ffffff;
+        }
+        .btn-reset svg {
+            width: 24px;
+            height: 24px;
+            fill: #0369a1;
+        }
+        #loading-screen {
+            position: absolute;
+            inset: 0;
+            background: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 50;
+            font-weight: bold;
+            color: #0369a1;
+        }
+    </style>
+</head>
+<body>
+
+<div id="loading-screen">正在加载素材...</div>
+
+<div id="game-container">
+    <div class="ui-right">
+        <button id="resetBtn" class="btn-reset" title="重置">
+            <svg viewBox="0 0 24 24">
+                <path d="M17.65 6.35C16.2 4.9 14.21 4 12 4c-4.42 0-7.99 3.58-7.99 8s3.57 8 7.99 8c3.73 0 6.84-2.55 7.73-6h-2.08c-.82 2.33-3.04 4-5.65 4-3.31 0-6-2.69-6-6s2.69-6 6-6c1.66 0 3.14.69 4.22 1.78L13 11h7V4l-2.35 2.35z"/>
+            </svg>
+        </button>
+    </div>
+    <canvas id="gameCanvas"></canvas>
+</div>
+
+<script>
+    const canvas = document.getElementById('gameCanvas');
+    const ctx = canvas.getContext('2d');
+    const resetBtn = document.getElementById('resetBtn');
+    const loadingScreen = document.getElementById('loading-screen');
+
+    let width, height;
+    let fallingSuits = []; 
+    let activeSuit = null;  
+    let currentSuitIndex = 0;
+    let isPaused = false; 
+
+    const SUIT_SPACING = 550; 
+    const IMAGE_WIDTH = 800;
+    const IMAGE_HEIGHT = 1000;
+    const DISPLAY_WIDTH = 260; 
+    const DISPLAY_HEIGHT = (DISPLAY_WIDTH * IMAGE_HEIGHT) / IMAGE_WIDTH;
+    const Y_OFFSET = 60;
+
+    const CHARACTER_URL = 'https://raw.githubusercontent.com/xinianwww/heenim/main/%E8%BA%AB%E4%BD%93%E5%B8%A6%E8%A1%A8%E6%83%85.png';
+    const SUIT_DATA = [
+        { id: 1, url: 'https://raw.githubusercontent.com/xinianwww/heenim/main/%E5%B8%8C%E6%BE%88%E6%8D%A2%E8%A3%851.png' },
+        { id: 2, url: 'https://raw.githubusercontent.com/xinianwww/heenim/main/%E5%B8%8C%E6%BE%88%E6%8D%A2%E8%A3%852.png' },
+        { id: 3, url: 'https://raw.githubusercontent.com/xinianwww/heenim/main/%E5%B8%8C%E6%BE%88%E6%8D%A2%E8%A3%853.png' },
+        { id: 4, url: 'https://raw.githubusercontent.com/xinianwww/heenim/main/%E5%B8%8C%E6%BE%88%E6%8D%A2%E8%A3%854.png' },
+        { id: 5, url: 'https://raw.githubusercontent.com/xinianwww/heenim/main/%E5%B8%8C%E6%BE%88%E6%8D%A2%E8%A3%855.png' },
+        { id: 6, url: 'https://raw.githubusercontent.com/xinianwww/heenim/main/%E5%B8%8C%E6%BE%88%E6%8D%A2%E8%A3%856.png' },
+        { id: 7, url: 'https://raw.githubusercontent.com/xinianwww/heenim/main/%E5%B8%8C%E6%BE%88%E6%8D%A2%E8%A3%857.png' },
+        { id: 8, url: 'https://raw.githubusercontent.com/xinianwww/heenim/main/%E5%B8%8C%E6%BE%88%E6%8D%A2%E8%A3%858.png' }
+    ];
+
+    const imageCache = new Map();
+
+    class SuitGroup {
+        constructor(data, startY) {
+            this.data = data;
+            this.img = imageCache.get(data.url);
+            this.x = width / 2;
+            this.y = startY;
+            this.speed = 4;
+            this.isEquipped = false;
+            this.hitW = DISPLAY_WIDTH;
+            this.hitH = DISPLAY_HEIGHT;
+        }
+
+        update() {
+            if (!this.isEquipped && !isPaused) {
+                this.y += this.speed;
+            } else if (this.isEquipped) {
+                this.x = width / 2;
+                this.y = height / 2 + Y_OFFSET; 
+            }
+        }
+
+        draw() {
+            if (isPaused && !this.isEquipped) return;
+
+            ctx.save();
+            ctx.translate(this.x, this.y);
+            if (this.img && this.img.complete) {
+                ctx.drawImage(this.img, -DISPLAY_WIDTH/2, -DISPLAY_HEIGHT/2, DISPLAY_WIDTH, DISPLAY_HEIGHT);
+            }
+            ctx.restore();
+        }
+
+        isClicked(mx, my) {
+            if (isPaused && !this.isEquipped) return false;
+            return mx > this.x - this.hitW/2 && mx < this.x + this.hitW/2 &&
+                   my > this.y - this.hitH/2 && my < this.y + this.hitH/2;
+        }
+    }
+
+    async function preloadImages() {
+        const allUrls = [CHARACTER_URL, ...SUIT_DATA.map(s => s.url)];
+        const promises = allUrls.map(url => {
+            return new Promise((resolve) => {
+                const img = new Image();
+                img.crossOrigin = "anonymous";
+                img.src = url;
+                img.onload = () => { imageCache.set(url, img); resolve(); };
+                img.onerror = resolve;
+            });
+        });
+        await Promise.all(promises);
+        loadingScreen.style.display = 'none';
+    }
+
+    function spawnSuit() {
+        let startY = -DISPLAY_HEIGHT;
+        if (fallingSuits.length > 0) {
+            // 找到当前在最上方的衣服，在其上方 spawn
+            let minY = fallingSuits[0].y;
+            fallingSuits.forEach(s => { if(s.y < minY) minY = s.y; });
+            startY = minY - SUIT_SPACING;
+        }
+        
+        const suit = new SuitGroup(SUIT_DATA[currentSuitIndex], startY);
+        fallingSuits.push(suit);
+        currentSuitIndex = (currentSuitIndex + 1) % SUIT_DATA.length;
+    }
+
+    function resize() {
+        width = window.innerWidth;
+        height = window.innerHeight;
+        canvas.width = width;
+        canvas.height = height;
+    }
+
+    function drawCharacterBody() {
+        const cx = width / 2;
+        const cy = height / 2 + Y_OFFSET; 
+        const charImg = imageCache.get(CHARACTER_URL);
+        if (charImg && charImg.complete) {
+            ctx.save();
+            ctx.translate(cx, cy);
+            ctx.drawImage(charImg, -DISPLAY_WIDTH/2, -DISPLAY_HEIGHT/2, DISPLAY_WIDTH, DISPLAY_HEIGHT);
+            ctx.restore();
+        }
+    }
+
+    function animate() {
+        ctx.clearRect(0, 0, width, height);
+        drawCharacterBody();
+
+        if (fallingSuits.length < 4) {
+            spawnSuit();
+        }
+
+        for (let i = fallingSuits.length - 1; i >= 0; i--) {
+            const suit = fallingSuits[i];
+            suit.update();
+            suit.draw();
+            // 如果衣服掉出屏幕底部，将其重新放置到最上方排队
+            if (suit.y > height + DISPLAY_HEIGHT) {
+                let minY = suit.y;
+                fallingSuits.forEach(s => { if(s.y < minY) minY = s.y; });
+                suit.y = minY - SUIT_SPACING;
+            }
+        }
+
+        if (activeSuit) {
+            activeSuit.update();
+            activeSuit.draw();
+        }
+        requestAnimationFrame(animate);
+    }
+
+    async function init() {
+        resize();
+        await preloadImages();
+        for(let i=0; i<4; i++) spawnSuit();
+        animate();
+    }
+
+    function returnToQueue(suit) {
+        suit.isEquipped = false;
+        let minY = 0;
+        fallingSuits.forEach(s => { if(s.y < minY) minY = s.y; });
+        suit.y = minY - SUIT_SPACING;
+        fallingSuits.push(suit);
+    }
+
+    resetBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        if (activeSuit) {
+            returnToQueue(activeSuit);
+            activeSuit = null;
+        }
+        isPaused = false;
+    });
+
+    canvas.addEventListener('mousedown', (e) => {
+        const rect = canvas.getBoundingClientRect();
+        const mx = e.clientX - rect.left;
+        const my = e.clientY - rect.top;
+
+        // 1. 点击身上的衣服脱掉
+        if (activeSuit && activeSuit.isClicked(mx, my)) {
+            returnToQueue(activeSuit);
+            activeSuit = null;
+            isPaused = false; 
+            return;
+        }
+
+        // 2. 点击下落的衣服换上
+        if (!isPaused) {
+            for (let i = fallingSuits.length - 1; i >= 0; i--) {
+                const suit = fallingSuits[i];
+                if (suit.isClicked(mx, my)) {
+                    if (activeSuit) returnToQueue(activeSuit);
+                    suit.isEquipped = true;
+                    activeSuit = suit;
+                    fallingSuits.splice(i, 1);
+                    isPaused = true; 
+                    return;
+                }
+            }
+        }
+
+        // 3. 点击背景恢复滑动
+        if (isPaused) isPaused = false;
+    });
+
+    canvas.addEventListener('touchstart', (e) => {
+        e.preventDefault();
+        const touch = e.touches[0];
+        const mouseEvent = new MouseEvent("mousedown", {
+            clientX: touch.clientX,
+            clientY: touch.clientY
+        });
+        canvas.dispatchEvent(mouseEvent);
+    }, {passive: false});
+
+    window.addEventListener('resize', resize);
+    window.onload = init;
+</script>
+</body>
+</html>
