@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>宇宙大明星换衣间 - 艺术画框版</title>
+    <title>宇宙大明星换衣间 - 藝術畫框版</title>
     <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
@@ -31,33 +31,39 @@
         }
         .animate-photo-pop { animation: photoPop 0.5s cubic-bezier(0.17, 0.89, 0.32, 1.28) forwards; }
 
-        .acc-layer { will-change: transform; transition: none !important; }
+        /* 核心優化：增加 GPU 加速，防止爆閃 */
+        .acc-layer { 
+            will-change: transform; 
+            transition: none !important;
+            -webkit-backface-visibility: hidden;
+            backface-visibility: hidden;
+        }
 
         .outer-frame-container {
             position: relative;
             border-radius: 2.5rem;
             overflow: hidden;
             box-shadow: 0 10px 40px rgba(0,0,0,0.1);
+            background: #fff; /* 提供穩定底色 */
         }
 
-        /* 毛玻璃模糊层 */
+        /* 修正後的毛玻璃層 - 使用更穩定的遮罩方式 */
         .glass-blur-layer {
             position: absolute;
             inset: 0;
             z-index: 5;
-            background: rgba(255, 255, 255, 0.15);
+            background: rgba(255, 255, 255, 0.2);
             backdrop-filter: blur(15px);
             -webkit-backdrop-filter: blur(15px);
-            mask: linear-gradient(#fff 0 0) content-box exclude, linear-gradient(#fff 0 0);
+            /* 提升至合成層 */
+            will-change: transform, opacity;
             -webkit-mask: linear-gradient(#fff 0 0) content-box exclude, linear-gradient(#fff 0 0);
+            mask: linear-gradient(#fff 0 0) content-box exclude, linear-gradient(#fff 0 0);
             padding: 25px;
             border-radius: 2.5rem;
-            -webkit-mask-clip: content-box, border-box;
-            mask-clip: content-box, border-box;
             pointer-events: none;
         }
 
-        /* 内部装饰白框 */
         .inner-line-box {
             position: absolute;
             inset: 25px; 
@@ -65,6 +71,7 @@
             border-radius: 1rem;
             z-index: 10;
             pointer-events: none;
+            will-change: transform;
         }
 
         .character-render-zone {
@@ -89,7 +96,7 @@
             const BODY_IMAGE = "https://github.com/xinianwww/xinianwwww/blob/main/%E8%BA%AB%E4%BD%93.png";
             const START_HINT_IMAGE = "https://github.com/xinianwww/xinianwwww/blob/main/tishi.png";
 
-             const ASSETS = {
+            c const ASSETS = {
                 hair: [
                     { id: 'h1', url: "https://github.com/xinianwww/xinianwwww/blob/main/%E5%A4%B4%E5%8F%911.png" },
                     { id: 'h2', url: "https://github.com/xinianwww/xinianwwww/blob/main/%E5%A4%B4%E5%8F%912.png" },
@@ -182,6 +189,8 @@
             const onPointerDown = (e) => {
                 if (activeTab !== 'accessory' || !selections.accessory) return;
                 setIsDragging(true);
+                // 修正拖拽起始計算方式，避免座標跳轉
+                const rect = e.currentTarget.getBoundingClientRect();
                 dragStart.current = { x: e.clientX - accPos.x, y: e.clientY - accPos.y };
                 e.currentTarget.setPointerCapture(e.pointerId);
             };
@@ -195,10 +204,8 @@
                 <div className="relative w-full h-full flex items-center justify-center overflow-hidden">
                     <div className="outer-frame-container h-[96%] aspect-[3/4] w-auto">
                         
-                        {/* 1. 底层清晰背景 */}
                         <img src={getAssetUrl(selections.background?.url)} className="absolute inset-0 w-full h-full object-cover z-0" crossOrigin="anonymous" />
                         
-                        {/* 2. 角色渲染区 (始终保持清晰) */}
                         <div className="character-render-zone">
                             <img src={getAssetUrl(BODY_IMAGE)} className="absolute inset-0 w-full h-full object-contain z-10" crossOrigin="anonymous" />
                             {selections.face && <img src={getAssetUrl(selections.face.url)} className="absolute inset-0 w-full h-full object-contain z-20" crossOrigin="anonymous" />}
@@ -219,7 +226,6 @@
                             )}
                         </div>
 
-                        {/* 3. 毛玻璃层 & 装饰框 (仅在非预览模式下显示) */}
                         {!preview && (
                             <>
                                 <div className="glass-blur-layer" />
@@ -253,7 +259,7 @@
                                 {['hair', 'face', 'clothes', 'suit', 'accessory', 'background'].map(tab => (
                                     <button key={tab} onClick={() => setActiveTab(tab)}
                                         className={`px-5 py-2 rounded-full whitespace-nowrap font-bold transition-all text-sm active:scale-95 shrink-0 ${activeTab === tab ? 'bg-cyan-500 text-white shadow-md' : 'text-cyan-400 bg-white/80'}`}>
-                                        {tab === 'hair' ? '发型' : tab === 'face' ? '表情' : tab === 'clothes' ? '衣服' : tab === 'suit' ? '套装' : tab === 'accessory' ? '饰品' : '背景'}
+                                        {tab === 'hair' ? '髮型' : tab === 'face' ? '表情' : tab === 'clothes' ? '衣服' : tab === 'suit' ? '套裝' : tab === 'accessory' ? '飾品' : '背景'}
                                     </button>
                                 ))}
                             </div>
@@ -289,7 +295,7 @@
                         <div className="fixed inset-0 z-[200] bg-gradient-to-b from-[#E0F7FA] to-[#B2EBF2] flex flex-col items-center justify-center p-6" onClick={() => setShowStartHint(false)}>
                             <img src={getAssetUrl(START_HINT_IMAGE)} className="w-[85%] max-w-[450px] mb-12 drop-shadow-2xl animate-bounce" style={{animationDuration: '3s'}} />
                             <button className="px-14 py-4 bg-white text-cyan-400 rounded-full text-2xl font-black shadow-xl active:scale-90 transition-all border-2 border-cyan-50">
-                                点击开始
+                                點擊開始
                             </button>
                         </div>
                     )}
