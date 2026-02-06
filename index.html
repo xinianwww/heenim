@@ -33,7 +33,6 @@
 
         .acc-layer { will-change: transform; transition: none !important; }
 
-        /* 外层容器：红框位置，圆角矩形 */
         .outer-frame-container {
             position: relative;
             border-radius: 2.5rem;
@@ -41,7 +40,7 @@
             box-shadow: 0 10px 40px rgba(0,0,0,0.1);
         }
 
-        /* 修正后的毛玻璃模糊层 */
+        /* 毛玻璃模糊层 */
         .glass-blur-layer {
             position: absolute;
             inset: 0;
@@ -49,30 +48,23 @@
             background: rgba(255, 255, 255, 0.15);
             backdrop-filter: blur(15px);
             -webkit-backdrop-filter: blur(15px);
-            /* 使用 mask 实现带圆角的挖洞效果，确保与白框对齐 */
-            mask-image: paint(dummy); /* 占位 */
-            -webkit-mask-image: radial-gradient(keep-it-simple); /* 占位 */
-            
-            /* 精确的圆角挖洞逻辑 */
             mask: linear-gradient(#fff 0 0) content-box exclude, linear-gradient(#fff 0 0);
             -webkit-mask: linear-gradient(#fff 0 0) content-box exclude, linear-gradient(#fff 0 0);
-            padding: 25px; /* 这里决定了模糊带的厚度 */
-            border-radius: 2.5rem; /* 外边缘圆角 */
+            padding: 25px;
+            border-radius: 2.5rem;
             -webkit-mask-clip: content-box, border-box;
             mask-clip: content-box, border-box;
             pointer-events: none;
         }
 
-        /* 内部清晰区对应的白框（蓝框位置） */
+        /* 内部装饰白框 */
         .inner-line-box {
             position: absolute;
-            /* 这里的 inset 必须和上面 padding 一致 (25px) 才能对齐 */
             inset: 25px; 
             border: 3px solid rgba(255, 255, 255, 0.9);
-            border-radius: 1rem; /* 内部圆角 */
+            border-radius: 1rem;
             z-index: 10;
             pointer-events: none;
-            box-shadow: 0 0 10px rgba(255,255,255,0.2);
         }
 
         .character-render-zone {
@@ -97,7 +89,7 @@
             const BODY_IMAGE = "https://github.com/xinianwww/xinianwwww/blob/main/%E8%BA%AB%E4%BD%93.png";
             const START_HINT_IMAGE = "https://github.com/xinianwww/xinianwwww/blob/main/tishi.png";
 
-            const ASSETS = {
+             const ASSETS = {
                 hair: [
                     { id: 'h1', url: "https://github.com/xinianwww/xinianwwww/blob/main/%E5%A4%B4%E5%8F%911.png" },
                     { id: 'h2', url: "https://github.com/xinianwww/xinianwwww/blob/main/%E5%A4%B4%E5%8F%912.png" },
@@ -158,6 +150,7 @@
                     { id: 'bg4', url: "https://github.com/xinianwww/xinianwwww/blob/main/%E8%83%8C%E6%99%AF4.png" },
                     { id: 'bg5', url: "https://github.com/xinianwww/xinianwwww/blob/main/%E8%83%8C%E6%99%AF5.png" },
                     { id: 'bg6', url: "https://github.com/xinianwww/xinianwwww/blob/main/%E8%83%8C%E6%99%AF6.png" },
+
                 ]
             };
 
@@ -226,11 +219,13 @@
                             )}
                         </div>
 
-                        {/* 3. 毛玻璃层 (带圆角挖洞) */}
-                        <div className="glass-blur-layer" />
-
-                        {/* 4. 精确对齐的装饰框 */}
-                        <div className="inner-line-box" />
+                        {/* 3. 毛玻璃层 & 装饰框 (仅在非预览模式下显示) */}
+                        {!preview && (
+                            <>
+                                <div className="glass-blur-layer" />
+                                <div className="inner-line-box" />
+                            </>
+                        )}
                     </div>
                 </div>
             );
@@ -241,7 +236,7 @@
                         
                         <div className="w-full h-[48%] md:w-[48%] md:h-full relative flex flex-col border-b md:border-b-0 md:border-r border-cyan-100/50">
                             <div className="flex-1 p-3 md:p-4 overflow-hidden">
-                                <DollDisplay />
+                                <DollDisplay preview={false} />
                             </div>
                             <div className="absolute bottom-6 left-0 right-0 flex justify-center gap-8 z-[70]">
                                 <button onClick={handleRandom} className="w-12 h-12 bg-white rounded-full shadow-lg active:scale-90 transition-all text-cyan-400 flex items-center justify-center border border-cyan-50">
