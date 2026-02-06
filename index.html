@@ -3,463 +3,313 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>宇宙大明星换衣间</title>
+    <title>宇宙大明星换衣间 - 清新蓝版</title>
     <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://html2canvas.hertzen.com/dist/html2canvas.min.js"></script>
-    
+    <script src="https://unpkg.com/lucide@latest"></script>
+
     <style>
         @font-face {
-            font-family: 'CustomYuanti';
-            src: url('https://raw.githubusercontent.com/xinianwww/xinianwwww/main/AASHUIYUYUANTI-2.TTF') format('truetype');
-            font-weight: normal;
-            font-style: normal;
-        }
-
-        @font-face {
-            font-family: 'SecondaryFont';
+            font-family: 'CustomFont';
             src: url('https://raw.githubusercontent.com/xinianwww/xinianwwww/main/%E6%B1%89%E4%BB%AAPP%E4%BD%93%E7%AE%80.TTF') format('truetype');
-            font-weight: normal;
-            font-style: normal;
         }
-
-        :root {
-            --title-font: 'CustomYuanti', sans-serif;
-            --body-font: 'SecondaryFont', sans-serif;
-            --theme-pink: #ff85a1;
-        }
-
-        /* 全局字体设置 */
-        * {
-            font-family: var(--body-font);
-            -webkit-text-stroke: 0.85px currentColor; 
-            text-shadow: 0.5px 0.5px 0px rgba(0,0,0,0.1);
-            color: #222;
-        }
-
-        body {
-            background: #ffdae3;
-            background-image: radial-gradient(#ffdae3 20%, #ffc1d1 100%);
-            margin: 0;
-            min-height: 100vh;
-            overflow-x: hidden;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            padding: 10px;
-        }
-
-        .main-title {
-            font-family: var(--title-font) !important;
-            font-size: 2.5rem;
-            color: white;
-            -webkit-text-stroke: 1.5px var(--theme-pink);
-            text-shadow: 3px 3px 0px var(--theme-pink);
-            margin-bottom: 0.5rem;
-            text-align: center;
-        }
-
-        @media (max-width: 768px) {
-            .main-title { font-size: 1.8rem; }
-        }
-
-        .app-shell {
-            width: 95vw;
-            max-width: 1200px;
-            height: 85vh;
-            background: white;
-            border-radius: 2.5rem;
-            border: 8px solid white;
-            box-shadow: 0 30px 60px rgba(255, 133, 161, 0.3);
-            display: flex;
-            overflow: hidden;
-            position: relative;
-        }
-
-        @media (max-width: 768px) {
-            .app-shell {
-                flex-direction: column;
-                height: 90vh;
-                border-radius: 1.5rem;
-                border-width: 4px;
-            }
-        }
-
-        .preview-pane {
-            flex: 0 0 45%;
-            background: #fffafa;
-            position: relative;
-            display: flex;
-            flex-direction: column;
-            border-right: 4px solid #ffecf0;
-            touch-action: none;
-            overflow: hidden;
-        }
-
-        @media (max-width: 768px) {
-            .preview-pane {
-                flex: 0 0 50%;
-                border-right: none;
-                border-bottom: 4px solid #ffecf0;
-            }
-        }
-
-        .doll-container {
-            position: relative;
-            width: 100%;
-            height: 100%;
-            overflow: hidden;
-        }
-        .doll-layer {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            object-fit: contain;
-            pointer-events: none;
-        }
-        .accessory-layer {
-            position: absolute;
-            width: 100%;
-            height: 100%;
-            cursor: move;
-            pointer-events: auto;
-        }
-
-        .control-pane {
-            flex: 1;
-            display: flex;
-            flex-direction: column;
-            background: white;
-            overflow: hidden;
-        }
-
-        .tab-button {
-            padding: 1rem 0.5rem;
-            font-size: 1.1rem;
-            transition: all 0.2s;
-            position: relative;
-            font-weight: 900;
-            white-space: nowrap;
-        }
-        .tab-button.active {
-            color: var(--theme-pink);
-            transform: scale(1.05);
-        }
-        .tab-button.active::after {
-            content: '';
-            position: absolute;
-            bottom: 4px;
-            left: 10%;
-            right: 10%;
-            height: 4px;
-            background: var(--theme-pink);
-            border-radius: 2px;
-        }
-
-        .item-grid-card {
-            aspect-ratio: 1;
-            background: #fff7f9;
-            border: 3px solid transparent;
-            border-radius: 1.2rem;
-            transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            padding: 0.5rem;
-            position: relative;
-        }
-        .item-grid-card:active {
-            transform: scale(0.9);
-            background: #ffe4ea;
-        }
-        .item-grid-card.selected {
-            border-color: var(--theme-pink);
-            background: #fff0f3;
-            box-shadow: 0 0 15px rgba(255, 133, 161, 0.2);
-        }
-
-        .photo-btn {
-            background: var(--theme-pink);
-            color: white !important;
-            padding: 0.6rem 1.5rem;
-            border-radius: 99px;
-            box-shadow: 0 5px 15px rgba(255, 133, 161, 0.4);
-            font-size: 1rem;
-        }
-
-        .no-scrollbar::-webkit-scrollbar { display: none; }
+        * { font-family: 'CustomFont', sans-serif !important; user-select: none; -webkit-tap-highlight-color: transparent; }
         
-        .backdrop-only-blur {
-            background-color: transparent;
-            backdrop-filter: blur(20px);
-            -webkit-backdrop-filter: blur(20px);
+        /* 恢复您最喜欢的清新蓝色调 */
+        body { 
+            background: linear-gradient(180deg, #E0F7FA 0%, #B2EBF2 100%); 
+            margin: 0; 
+            overflow: hidden; 
         }
 
-        .polaroid-frame {
-            background: white;
-            padding: 12px 12px 30px 12px;
-            box-shadow: 0 20px 40px rgba(0,0,0,0.15);
-            border-radius: 4px;
-            width: 85vw;
-            max-width: 320px;
+        /* 拍立得照片弹出动效：滑入、旋转、回弹 */
+        @keyframes photoPop {
+            0% { transform: scale(0.6) translateY(300px) rotate(-15deg); opacity: 0; }
+            70% { transform: scale(1.05) translateY(-20px) rotate(2deg); opacity: 1; }
+            100% { transform: scale(1) translateY(0) rotate(0); opacity: 1; }
         }
+        .animate-photo-pop { animation: photoPop 0.6s cubic-bezier(0.22, 1, 0.36, 1) forwards; }
 
-        .polaroid-title {
-            font-family: 'SecondaryFont', sans-serif !important;
-            font-size: 1.8rem;
-            font-weight: bold;
-            color: var(--theme-pink);
-            text-align: center;
-            text-shadow: 
-                -2px -2px 0 #fff,  
-                 2px -2px 0 #fff,
-                -2px  2px 0 #fff,
-                 2px  2px 0 #fff,
-                3px 3px 6px rgba(255, 133, 161, 0.4);
+        /* 滚动条清新蓝 */
+        .custom-scrollbar::-webkit-scrollbar { width: 4px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: #81D4FA; border-radius: 10px; }
+        
+        /* 切换防抖 */
+        .ui-container { backface-visibility: hidden; transform: translateZ(0); }
+        
+        .glass-panel {
+            background: rgba(255, 255, 255, 0.85);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.5);
         }
     </style>
 </head>
 <body>
-    <div class="flex flex-col items-center w-full">
-        <h1 class="main-title">宇宙大明星换衣间</h1>
-        <div id="root" class="w-full flex justify-center"></div>
-    </div>
+    <div id="root"></div>
 
     <script type="text/babel">
         const { useState, useEffect, useRef } = React;
 
-        const getAssetUrl = (url) => url ? url.trim().replace('github.com', 'raw.githubusercontent.com').replace('/blob/', '/') : null;
-
-        const ASSETS = {
-            hairstyles: [
-                { id: 'h1', name: '奶糖卷', url: "https://github.com/xinianwww/xinianwwww/blob/main/%E5%A4%B4%E5%8F%911.png" },
-                { id: 'h2', name: '草莓大福', url: "https://github.com/xinianwww/xinianwwww/blob/main/%E5%A4%B4%E5%8F%912.png" },
-                { id: 'h3', name: '蓝莓冰沙', url: "https://github.com/xinianwww/xinianwwww/blob/main/%E5%A4%B4%E5%8F%913.png" },
-                { id: 'h4', name: '巧克力派', url: "https://github.com/xinianwww/xinianwwww/blob/main/%E5%A4%B4%E5%8F%914.png" },
-                { id: 'h5', name: '香草甜筒', url: "https://github.com/xinianwww/xinianwwww/blob/main/%E5%A4%B4%E5%8F%915.png" },
-                { id: 'h6', name: '葡萄果冻', url: "https://github.com/xinianwww/xinianwwww/blob/main/%E5%A4%B4%E5%8F%916.png" },
-                { id: 'h7', name: '蜜桃苏打', url: "https://github.com/xinianwww/xinianwwww/blob/main/%E5%A4%B4%E5%8F%917.png" },
-                { id: 'h8', name: '薄荷软糖', url: "https://github.com/xinianwww/xinianwwww/blob/main/%E5%A4%B4%E5%8F%918.png" }
-            ],
-            faces: [
-                { id: 'f1', name: '开心心', url: "https://github.com/xinianwww/xinianwwww/blob/main/%E8%A1%A8%E6%83%851.png" },
-                { id: 'f2', name: '眨眨眼', url: "https://github.com/xinianwww/xinianwwww/blob/main/%E8%A1%A8%E6%83%852.png" },
-                { id: 'f3', name: '星星眼', url: "https://github.com/xinianwww/xinianwwww/blob/main/%E8%A1%A8%E6%83%853.png" },
-                { id: 'f4', name: '委屈屈', url: "https://github.com/xinianwww/xinianwwww/blob/main/%E8%A1%A8%E6%83%854.png" },
-                { id: 'f5', name: '吃惊呀', url: "https://github.com/xinianwww/xinianwwww/blob/main/%E8%A1%A8%E6%83%855.png" }
-            ],
-            clothes: [
-                { id: 'c1', name: '草莓裙', url: "https://github.com/xinianwww/xinianwwww/blob/main/%E8%A1%A3%E6%9C%8D1.png" },
-                { id: 'c2', name: '水手服', url: "https://github.com/xinianwww/xinianwwww/blob/main/%E8%A1%A3%E6%9C%8D2.png" },
-                { id: 'c3', name: '蕾丝衫', url: "https://github.com/xinianwww/xinianwwww/blob/main/%E8%A1%A3%E6%9C%8D3.png" },
-                { id: 'c4', name: '小吊带', url: "https://github.com/xinianwww/xinianwwww/blob/main/%E8%A1%A3%E6%9C%8D4.png" },
-                { id: 'c5', name: '背带裤', url: "https://github.com/xinianwww/xinianwwww/blob/main/%E8%A1%A3%E6%9C%8D5.png" },
-                { id: 'c6', name: '泡泡袖', url: "https://github.com/xinianwww/xinianwwww/blob/main/%E8%A1%A3%E6%9C%8D6.png" },
-                { id: 'c7', name: '运动装', url: "https://github.com/xinianwww/xinianwwww/blob/main/%E8%A1%A3%E6%9C%8D7.png" },
-                { id: 'c8', name: '晚礼服', url: "https://github.com/xinianwww/xinianwwww/blob/main/%E8%A1%A3%E6%9C%8D8.png" }
-            ],
-            sets: [
-                { id: 's1', name: '魔法少女', url: "https://github.com/xinianwww/xinianwwww/blob/main/%E5%A5%97%E8%A3%851.png" },
-                { id: 's2', name: '偶像练习', url: "https://github.com/xinianwww/xinianwwww/blob/main/%E5%A5%97%E8%A3%852.png" },
-                { id: 's3', name: '森女系', url: "https://github.com/xinianwww/xinianwwww/blob/main/%E5%A5%97%E8%A3%853.png" }
-            ],
-            accessories: [
-                { id: 'a1', name: '粉蝴蝶', url: "https://github.com/xinianwww/xinianwwww/blob/main/sp1.png" },
-                { id: 'a2', name: '蓝蝴蝶', url: "https://github.com/xinianwww/xinianwwww/blob/main/sp2.png" },
-                { id: 'a3', name: '小发夹', url: "https://github.com/xinianwww/xinianwwww/blob/main/sp3.png" },
-                { id: 'a4', name: '猫耳朵', url: "https://github.com/xinianwww/xinianwwww/blob/main/sp4.png" },
-                { id: 'a5', name: '小王冠', url: "https://github.com/xinianwww/xinianwwww/blob/main/sp5.png" },
-                { id: 'a6', name: '爱心耳环', url: "https://github.com/xinianwww/xinianwwww/blob/main/sp6.png" },
-                { id: 'a7', name: '珍珠链', url: "https://github.com/xinianwww/xinianwwww/blob/main/sp7.png" },
-                { id: 'a8', name: '大蝴蝶', url: "https://github.com/xinianwww/xinianwwww/blob/main/sp8.png" }
-            ],
-            backgrounds: [
-                { id: 'bg1', name: '草莓田', url: "https://github.com/xinianwww/xinianwwww/blob/main/%E8%83%8C%E6%99%AF1.png" },
-                { id: 'bg2', name: '云朵朵', url: "https://github.com/xinianwww/xinianwwww/blob/main/%E8%83%8C%E6%99%AF2.png" },
-                { id: 'bg3', name: '星空空', url: "https://github.com/xinianwww/xinianwwww/blob/main/%E8%83%8C%E6%99%AF3.png" },
-                { id: 'bg4', name: '甜点屋', url: "https://github.com/xinianwww/xinianwwww/blob/main/%E8%83%8C%E6%99%AF4.png" },
-                { id: 'bg5', name: '游乐园', url: "https://github.com/xinianwww/xinianwwww/blob/main/%E8%83%8C%E6%99%AF5.png" }
-            ]
-        };
-
-        const BODY_IMG = "https://github.com/xinianwww/xinianwwww/blob/main/%E8%BA%AB%E4%BD%93.png";
-        const START_HINT = "https://github.com/xinianwww/xinianwwww/blob/main/tishi.png";
-
         const App = () => {
-            const [outfit, setOutfit] = useState({
-                hair: ASSETS.hairstyles[0], face: ASSETS.faces[0], clothes: ASSETS.clothes[0],
-                set: null, accessory: null, background: ASSETS.backgrounds[0], accPos: { x: 0, y: 0 }
-            });
-            const [activeTab, setActiveTab] = useState('hairstyles');
-            const [isDragging, setIsDragging] = useState(false);
-            const [showPhoto, setShowPhoto] = useState(false);
-            const [showHint, setShowHint] = useState(true);
-            const [isSaving, setIsSaving] = useState(false);
-            
-            const dragOffset = useRef({ x: 0, y: 0 });
-            const photoAreaRef = useRef(null);
+            const getAssetUrl = (url) => {
+                if (!url) return null;
+                return url.trim().replace('github.com', 'raw.githubusercontent.com').replace('/blob/', '/');
+            };
 
-            const onPointerDown = (e) => {
-                if (activeTab !== 'accessories' || !outfit.accessory) return;
+            const BODY_IMAGE = "https://github.com/xinianwww/xinianwwww/blob/main/%E8%BA%AB%E4%BD%93.png";
+            const START_HINT_IMAGE = "https://github.com/xinianwww/xinianwwww/blob/main/tishi.png";
+
+            const ASSETS = {
+                hair: [
+                    { id: 'h1', url: "https://github.com/xinianwww/xinianwwww/blob/main/%E5%A4%B4%E5%8F%911.png" },
+                    { id: 'h2', url: "https://github.com/xinianwww/xinianwwww/blob/main/%E5%A4%B4%E5%8F%912.png" },
+                    { id: 'h3', url: "https://github.com/xinianwww/xinianwwww/blob/main/%E5%A4%B4%E5%8F%913.png" },
+                    { id: 'h4', url: "https://github.com/xinianwww/xinianwwww/blob/main/%E5%A4%B4%E5%8F%914.png" },
+                    { id: 'h5', url: "https://github.com/xinianwww/xinianwwww/blob/main/%E5%A4%B4%E5%8F%915.png" },
+                    { id: 'h6', url: "https://github.com/xinianwww/xinianwwww/blob/main/%E5%A4%B4%E5%8F%916.png" },
+                    { id: 'h7', url: "https://github.com/xinianwww/xinianwwww/blob/main/%E5%A4%B4%E5%8F%917.png" },
+                    { id: 'h8', url: "https://github.com/xinianwww/xinianwwww/blob/main/%E5%A4%B4%E5%8F%918.png" },
+                    { id: 'h9', url: "https://github.com/xinianwww/xinianwwww/blob/main/%E5%A4%B4%E5%8F%919.png" },
+                    { id: 'h10', url: "https://github.com/xinianwww/xinianwwww/blob/main/%E5%A4%B4%E5%8F%9110.png" }
+                ],
+                face: [
+                    { id: 'f1', url: "https://github.com/xinianwww/xinianwwww/blob/main/%E8%A1%A8%E6%83%851.png" },
+                    { id: 'f2', url: "https://github.com/xinianwww/xinianwwww/blob/main/%E8%A1%A8%E6%83%852.png" },
+                    { id: 'f3', url: "https://github.com/xinianwww/xinianwwww/blob/main/%E8%A1%A8%E6%83%853.png" },
+                    { id: 'f4', url: "https://github.com/xinianwww/xinianwwww/blob/main/%E8%A1%A8%E6%83%854.png" },
+                    { id: 'f5', url: "https://github.com/xinianwww/xinianwwww/blob/main/%E8%A1%A8%E6%83%855.png" }
+                ],
+                clothes: [
+                    { id: 'c1', url: "https://github.com/xinianwww/xinianwwww/blob/main/%E8%A1%A3%E6%9C%8D1.png" },
+                    { id: 'c2', url: "https://github.com/xinianwww/xinianwwww/blob/main/%E8%A1%A3%E6%9C%8D2.png" },
+                    { id: 'c3', url: "https://github.com/xinianwww/xinianwwww/blob/main/%E8%A1%A3%E6%9C%8D3.png" },
+                    { id: 'c4', url: "https://github.com/xinianwww/xinianwwww/blob/main/%E8%A1%A3%E6%9C%8D4.png" },
+                    { id: 'c5', url: "https://github.com/xinianwww/xinianwwww/blob/main/%E8%A1%A3%E6%9C%8D5.png" },
+                    { id: 'c6', url: "https://github.com/xinianwww/xinianwwww/blob/main/%E8%A1%A3%E6%9C%8D6.png" },
+                    { id: 'c7', url: "https://github.com/xinianwww/xinianwwww/blob/main/%E8%A1%A3%E6%9C%8D7.png" },
+                    { id: 'c8', url: "https://github.com/xinianwww/xinianwwww/blob/main/%E8%A1%A3%E6%9C%8D8.png" },
+                    { id: 'c9', url: "https://github.com/xinianwww/xinianwwww/blob/main/%E8%A1%A3%E6%9C%8D9.png" },
+                    { id: 'c10', url: "https://github.com/xinianwww/xinianwwww/blob/main/%E8%A1%A3%E6%9C%8D10.png" },
+                    { id: 'c11', url: "https://github.com/xinianwww/xinianwwww/blob/main/%E8%A1%A3%E6%9C%8D11.png" },
+                    { id: 'c12', url: "https://github.com/xinianwww/xinianwwww/blob/main/%E8%A1%A3%E6%9C%8D12.png" }
+                ],
+                accessory: [
+                    { id: 'a1', url: "https://github.com/xinianwww/xinianwwww/blob/main/sp1.png" },
+                    { id: 'a2', url: "https://github.com/xinianwww/xinianwwww/blob/main/sp2.png" },
+                    { id: 'a3', url: "https://github.com/xinianwww/xinianwwww/blob/main/sp3.png" },
+                    { id: 'a4', url: "https://github.com/xinianwww/xinianwwww/blob/main/sp4.png" },
+                    { id: 'a5', url: "https://github.com/xinianwww/xinianwwww/blob/main/sp5.png" },
+                    { id: 'a6', url: "https://github.com/xinianwww/xinianwwww/blob/main/sp6.png" },
+                    { id: 'a7', url: "https://github.com/xinianwww/xinianwwww/blob/main/sp7.png" },
+                    { id: 'a8', url: "https://github.com/xinianwww/xinianwwww/blob/main/sp8.png" },
+                    { id: 'a9', url: "https://github.com/xinianwww/xinianwwww/blob/main/sp9.png" }, 
+                    { id: 'a10', url: "https://github.com/xinianwww/xinianwwww/blob/main/sp10.png" }, 
+                    { id: 'a11', url: "https://github.com/xinianwww/xinianwwww/blob/main/sp11.png" }, 
+            
+                ],
+                suit: [
+                    { id: 's1', url: "https://github.com/xinianwww/xinianwwww/blob/main/%E5%A5%97%E8%A3%851.png" },
+                    { id: 's2', url: "https://github.com/xinianwww/xinianwwww/blob/main/%E5%A5%97%E8%A3%852.png" },
+                    { id: 's3', url: "https://github.com/xinianwww/xinianwwww/blob/main/%E5%A5%97%E8%A3%853.png" },
+                    { id: 's4', url: "https://github.com/xinianwww/xinianwwww/blob/main/%E5%A5%97%E8%A3%854.png" },
+                ],
+                background: [
+                    { id: 'bg1', url: "https://github.com/xinianwww/xinianwwww/blob/main/%E8%83%8C%E6%99%AF1.png" },
+                    { id: 'bg2', url: "https://github.com/xinianwww/xinianwwww/blob/main/%E8%83%8C%E6%99%AF2.png" },
+                    { id: 'bg3', url: "https://github.com/xinianwww/xinianwwww/blob/main/%E8%83%8C%E6%99%AF3.png" },
+                    { id: 'bg4', url: "https://github.com/xinianwww/xinianwwww/blob/main/%E8%83%8C%E6%99%AF4.png" },
+                    { id: 'bg5', url: "https://github.com/xinianwww/xinianwwww/blob/main/%E8%83%8C%E6%99%AF5.png" },
+                    { id: 'bg6', url: "https://github.com/xinianwww/xinianwwww/blob/main/%E8%83%8C%E6%99%AF6.png" },
+
+                ]
+            };
+
+            const [selections, setSelections] = useState({
+                hair: ASSETS.hair[0], face: ASSETS.face[0], clothes: ASSETS.clothes[0],
+                accessory: null, background: ASSETS.background[0], suit: null
+            });
+            const [activeTab, setActiveTab] = useState('hair');
+            const [showStartHint, setShowStartHint] = useState(true);
+            const [showPhoto, setShowPhoto] = useState(false);
+            const [isGenerating, setIsGenerating] = useState(false);
+            const [accPos, setAccPos] = useState({ x: 0, y: 0 });
+            const [isDragging, setIsDragging] = useState(false);
+            
+            const photoRef = useRef(null);
+            const dragStart = useRef({ x: 0, y: 0 });
+
+            // 随机搭配逻辑：套装单独出现，表情保留
+            const handleRandom = () => {
+                const pick = (arr) => arr[Math.floor(Math.random() * arr.length)];
+                const useSuit = Math.random() > 0.7; 
+
+                if (useSuit) {
+                    setSelections({
+                        hair: null, clothes: null, accessory: null,
+                        face: pick(ASSETS.face),
+                        suit: pick(ASSETS.suit),
+                        background: pick(ASSETS.background)
+                    });
+                } else {
+                    setSelections({
+                        suit: null,
+                        hair: pick(ASSETS.hair),
+                        face: pick(ASSETS.face),
+                        clothes: pick(ASSETS.clothes),
+                        accessory: Math.random() > 0.5 ? pick(ASSETS.accessory) : null,
+                        background: pick(ASSETS.background)
+                    });
+                }
+                setAccPos({ x: 0, y: 0 });
+            };
+
+            const handlePointerDown = (e) => {
+                if (activeTab !== 'accessory' || !selections.accessory) return;
                 setIsDragging(true);
-                const rect = e.currentTarget.getBoundingClientRect();
-                dragOffset.current = { x: e.clientX - outfit.accPos.x, y: e.clientY - outfit.accPos.y };
+                dragStart.current = { x: e.clientX - accPos.x, y: e.clientY - accPos.y };
                 e.currentTarget.setPointerCapture(e.pointerId);
             };
 
-            const onPointerMove = (e) => {
+            const handlePointerMove = (e) => {
                 if (!isDragging) return;
-                setOutfit(p => ({
-                    ...p,
-                    accPos: { x: e.clientX - dragOffset.current.x, y: e.clientY - dragOffset.current.y }
-                }));
+                setAccPos({ x: e.clientX - dragStart.current.x, y: e.clientY - dragStart.current.y });
             };
 
-            const onPointerUp = () => setIsDragging(false);
+            const handlePointerUp = () => setIsDragging(false);
 
-            const handleRandom = () => {
-                const randomItem = (arr) => arr[Math.floor(Math.random() * arr.length)];
-                setOutfit(p => ({
-                    ...p,
-                    hair: randomItem(ASSETS.hairstyles),
-                    face: randomItem(ASSETS.faces),
-                    clothes: randomItem(ASSETS.clothes),
-                    background: randomItem(ASSETS.backgrounds),
-                    set: null // 随机时重置套装，避免层级混乱
-                }));
+            const handleSelect = (category, item) => {
+                setSelections(prev => {
+                    const newS = { ...prev };
+                    if (category === 'suit') {
+                        if (prev.suit?.id === item.id) {
+                            newS.suit = null;
+                        } else {
+                            newS.suit = item;
+                            newS.hair = null; 
+                            newS.clothes = null;
+                        }
+                    } else {
+                        newS.suit = null;
+                        newS[category] = prev[category]?.id === item.id ? null : item;
+                        if (category === 'accessory') setAccPos({ x: 0, y: 0 });
+                    }
+                    return newS;
+                });
             };
 
-            const handleSave = async () => {
-                if (!photoAreaRef.current || isSaving) return;
-                setIsSaving(true);
+            const downloadPhoto = async () => {
+                if (isGenerating) return;
+                setIsGenerating(true);
                 try {
-                    const canvas = await html2canvas(photoAreaRef.current, {
-                        useCORS: true,
-                        allowTaint: false,
-                        backgroundColor: "#ffffff",
-                        scale: 3,
-                        logging: false
+                    const canvas = await html2canvas(photoRef.current, {
+                        useCORS: true, scale: 3, backgroundColor: "#ffffff",
                     });
                     const link = document.createElement('a');
-                    link.download = `小明星_${Date.now()}.png`;
+                    link.download = `StarDoll_${Date.now()}.png`;
                     link.href = canvas.toDataURL('image/png', 1.0);
                     link.click();
-                } catch (err) {
-                    console.error("图片生成失败", err);
-                } finally {
-                    setIsSaving(false);
-                }
+                } catch (e) { console.error(e); }
+                finally { setIsGenerating(false); }
             };
 
-            const renderDollLayers = () => (
-                <div className="doll-container">
-                    {outfit.background && <img src={getAssetUrl(outfit.background.url)} className="doll-layer" crossOrigin="anonymous" />}
-                    <img src={getAssetUrl(BODY_IMG)} className="doll-layer" crossOrigin="anonymous" />
-                    {outfit.face && <img src={getAssetUrl(outfit.face.url)} className="doll-layer" crossOrigin="anonymous" />}
-                    {outfit.clothes && <img src={getAssetUrl(outfit.clothes.url)} className="doll-layer" crossOrigin="anonymous" />}
-                    {outfit.set && <img src={getAssetUrl(outfit.set.url)} className="doll-layer" crossOrigin="anonymous" />}
-                    {outfit.hair && <img src={getAssetUrl(outfit.hair.url)} className="doll-layer" crossOrigin="anonymous" />}
-                    {outfit.accessory && (
-                        <div 
-                            className="accessory-layer" 
-                            style={{ transform: `translate(${outfit.accPos.x}px, ${outfit.accPos.y}px)` }}
-                            onPointerDown={onPointerDown}
-                            onPointerMove={onPointerMove}
-                            onPointerUp={onPointerUp}
-                        >
-                            <img src={getAssetUrl(outfit.accessory.url)} className="w-full h-full object-contain pointer-events-none" crossOrigin="anonymous" />
+            const DollDisplay = ({ preview = false }) => (
+                <div className="relative w-full h-full ui-container">
+                    <img src={getAssetUrl(selections.background?.url)} className="absolute inset-0 w-full h-full object-cover transition-all duration-700" crossOrigin="anonymous" />
+                    <img src={getAssetUrl(BODY_IMAGE)} className="absolute inset-0 w-full h-full object-contain z-10" crossOrigin="anonymous" />
+                    {selections.face && <img src={getAssetUrl(selections.face.url)} className="absolute inset-0 w-full h-full object-contain z-20" crossOrigin="anonymous" />}
+                    {selections.clothes && <img src={getAssetUrl(selections.clothes.url)} className="absolute inset-0 w-full h-full object-contain z-30" crossOrigin="anonymous" />}
+                    {selections.suit && <img src={getAssetUrl(selections.suit.url)} className="absolute inset-0 w-full h-full object-contain z-30" crossOrigin="anonymous" />}
+                    {selections.hair && <img src={getAssetUrl(selections.hair.url)} className="absolute inset-0 w-full h-full object-contain z-40" crossOrigin="anonymous" />}
+                    {selections.accessory && (
+                        <div className="absolute inset-0 z-50 pointer-events-none" style={{ transform: `translate(${accPos.x}px, ${accPos.y}px)` }}>
+                            <img src={getAssetUrl(selections.accessory.url)} className="w-full h-full object-contain" crossOrigin="anonymous" />
                         </div>
+                    )}
+                    {!preview && selections.accessory && activeTab === 'accessory' && (
+                        <div className="absolute inset-0 z-[60] cursor-move touch-none"
+                            onPointerDown={handlePointerDown} onPointerMove={handlePointerMove} onPointerUp={handlePointerUp} />
                     )}
                 </div>
             );
 
             return (
-                <div className="app-shell">
-                    {/* 预览区 */}
-                    <div className="preview-pane">
-                        <div className="flex-1 p-4 md:p-8 flex items-center justify-center relative overflow-hidden">
-                            <div className="w-full max-w-[360px] aspect-[8/10] bg-white rounded-[1.5rem] md:rounded-[2rem] shadow-2xl overflow-hidden border-4 border-white relative">
-                                {renderDollLayers()}
-                                {activeTab === 'accessories' && outfit.accessory && (
-                                    <div className="absolute top-4 left-1/2 -translate-x-1/2 bg-white/90 px-3 py-1 rounded-full text-[10px] md:text-sm font-black text-pink-500 shadow-md whitespace-nowrap z-20">
-                                        ✨ 拖动饰品调整位置
-                                    </div>
-                                )}
+                <div className="min-h-screen w-full flex items-center justify-center p-4">
+                    {/* 主面板 */}
+                    <div className="w-full max-w-[1000px] h-[85vh] glass-panel rounded-[3.5rem] shadow-[0_20px_80px_rgba(0,188,212,0.15)] flex flex-col md:flex-row overflow-hidden ui-container">
+                        
+                        {/* 展示区 */}
+                        <div className="w-full md:w-[55%] h-1/2 md:h-full p-6 flex flex-col items-center">
+                            <div className="w-full flex-1 relative bg-white/60 rounded-[3rem] overflow-hidden shadow-inner border border-white">
+                                <DollDisplay />
+                            </div>
+                            <div className="mt-8 flex gap-10">
+                                {/* 随机按钮 */}
+                                <button onClick={handleRandom} 
+                                        className="w-14 h-14 bg-white/80 hover:bg-white rounded-full shadow active:scale-90 transition-all text-cyan-400 flex items-center justify-center border border-cyan-50">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M21 2v6h-6"/><path d="M3 12a9 9 0 0 1 15-6.7L21 8"/><path d="M3 22v-6h6"/><path d="M21 12a9 9 0 0 1-15 6.7L3 16"/></svg>
+                                </button>
+                                {/* 保存按钮 - 仅图标 */}
+                                <button onClick={() => setShowPhoto(true)} 
+                                        className="w-14 h-14 bg-cyan-400 text-white rounded-full shadow-lg shadow-cyan-200 active:scale-90 hover:scale-105 transition-all flex items-center justify-center">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z"/><circle cx="12" cy="13" r="3"/></svg>
+                                </button>
                             </div>
                         </div>
-                        <div className="h-20 md:h-24 flex items-center justify-center gap-4 md:gap-8 bg-white/50 backdrop-blur-sm">
-                            <button onClick={() => setShowPhoto(true)} className="photo-btn font-black">📷 拍立得</button>
-                            <button onClick={handleRandom} className="px-5 py-2 bg-white rounded-full text-amber-500 font-black border-2 border-amber-100 shadow-sm active:scale-95 transition-transform text-sm md:text-base">✨ 随机</button>
-                        </div>
-                    </div>
 
-                    {/* 控制区 */}
-                    <div className="control-pane">
-                        <div className="flex border-b overflow-x-auto no-scrollbar bg-pink-50/20 sticky top-0 z-10">
-                            {['hairstyles', 'faces', 'clothes', 'sets', 'accessories', 'backgrounds'].map(tab => (
-                                <button key={tab} onClick={() => setActiveTab(tab)} className={`tab-button flex-1 min-w-[70px] ${activeTab === tab ? 'active' : ''}`}>
-                                    {tab==='hairstyles'?'发型':tab==='faces'?'表情':tab==='clothes'?'衣服':tab==='sets'?'套装':tab==='accessories'?'饰品':'背景'}
-                                </button>
-                            ))}
-                        </div>
-                        <div className="flex-1 overflow-y-auto p-4 md:p-6 no-scrollbar">
-                            <div className="grid grid-cols-3 gap-3 md:gap-4">
-                                {ASSETS[activeTab].map(item => (
-                                    <div key={item.id} onClick={() => {
-                                        const keyMap = { hairstyles:'hair', faces:'face', clothes:'clothes', sets:'set', accessories:'accessory', backgrounds:'background' };
-                                        const k = keyMap[activeTab];
-                                        setOutfit(p => {
-                                            const n = {...p};
-                                            if(k==='set'){ n.set=p.set?.id===item.id?null:item; if(n.set){n.hair=null;n.clothes=null;} }
-                                            else if(k==='hair'||k==='clothes'){ n[k]=p[k]?.id===item.id?null:item; if(n[k])n.set=null; }
-                                            else { n[k]=p[k]?.id===item.id?null:item; if(k==='accessory') n.accPos={x:0,y:0}; }
-                                            return n;
-                                        });
-                                    }} className={`item-grid-card cursor-pointer shadow-sm hover:shadow-md transition-all ${ (outfit.hair?.id===item.id||outfit.face?.id===item.id||outfit.clothes?.id===item.id||outfit.set?.id===item.id||outfit.accessory?.id===item.id||outfit.background?.id===item.id) ? 'selected' : ''}`}>
-                                        <img src={getAssetUrl(item.url)} className="w-12 h-12 md:w-16 md:h-16 object-contain pointer-events-none" />
-                                        <span className="text-[0.65rem] md:text-[0.75rem] mt-1 font-black leading-tight text-center">{item.name}</span>
-                                    </div>
+                        {/* 选择区 */}
+                        <div className="flex-1 flex flex-col bg-white/40">
+                            <div className="flex gap-2 p-4 overflow-x-auto custom-scrollbar border-b border-cyan-50 h-[65px] items-center no-shake">
+                                {[
+                                    {k:'hair', n:'发型'}, {k:'face', n:'表情'}, {k:'clothes', n:'衣服'},
+                                    {k:'suit', n:'套装'}, {k:'accessory', n:'饰品'}, {k:'background', n:'背景'}
+                                ].map(tab => (
+                                    <button key={tab.k} onClick={() => setActiveTab(tab.k)}
+                                        className={`px-5 py-1.5 rounded-full whitespace-nowrap font-bold transition-all text-sm active:scale-95 ${activeTab === tab.k ? 'bg-cyan-500 text-white shadow-md' : 'text-cyan-400 hover:bg-cyan-50/50'}`}>
+                                        {tab.n}
+                                    </button>
                                 ))}
                             </div>
+                            <div className="flex-1 overflow-y-auto p-5 custom-scrollbar ui-container">
+                                <div className="grid grid-cols-3 gap-4">
+                                    {ASSETS[activeTab].map(item => (
+                                        <div key={item.id} onClick={() => handleSelect(activeTab, item)}
+                                            className={`aspect-square rounded-[1.8rem] flex items-center justify-center cursor-pointer border-2 transition-all bg-white/80 active:scale-90 ${selections[activeTab]?.id === item.id ? 'border-cyan-400 bg-cyan-50/50' : 'border-transparent hover:bg-white'}`}>
+                                            <img src={getAssetUrl(item.url)} className="max-w-[85%] max-h-[85%] object-contain" crossOrigin="anonymous" />
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
                         </div>
                     </div>
 
-                    {/* 拍立得弹窗 */}
+                    {/* 拍立得预览弹窗 */}
                     {showPhoto && (
-                        <div className="fixed inset-0 z-[150] bg-pink-200/60 backdrop-blur-md flex flex-col items-center justify-center p-4" onClick={(e) => e.target === e.currentTarget && setShowPhoto(false)}>
-                            <div className="flex flex-col items-center animate-[zoomIn_0.4s_ease-out]">
-                                <h2 className="polaroid-title mb-4">
-                                    金希澈闪亮登场
-                                </h2>
-                                <div ref={photoAreaRef} className="polaroid-frame mb-6">
-                                    <div className="aspect-[8/10] bg-gray-50 overflow-hidden relative">
-                                        {renderDollLayers()}
-                                    </div>
+                        <div className="fixed inset-0 z-[100] flex items-center justify-center p-6 bg-cyan-900/10 backdrop-blur-md">
+                            <div className="bg-white p-5 pb-20 shadow-2xl rounded-sm max-w-sm w-full animate-photo-pop border-[12px] border-white relative">
+                                <div ref={photoRef} className="aspect-[4/5] bg-gray-50 overflow-hidden relative border border-gray-100">
+                                    <DollDisplay preview={true} />
+                                    {isGenerating && <div className="absolute inset-0 z-[70] bg-white animate-pulse"></div>}
                                 </div>
-                            </div>
-                            <div className="flex gap-4">
-                                <button onClick={() => setShowPhoto(false)} className="px-8 py-2.5 bg-white rounded-full font-black text-gray-500 shadow-md active:scale-95 transition-transform">返回</button>
-                                <button onClick={handleSave} className="px-8 py-2.5 bg-pink-500 text-white rounded-full font-black shadow-lg active:scale-95 transition-transform">
-                                    {isSaving ? '正在保存...' : '保存到相册'}
-                                </button>
+                                <div className="mt-10 flex gap-4">
+                                    <button onClick={() => setShowPhoto(false)} className="flex-1 py-3 bg-gray-50 text-gray-400 rounded-full font-bold active:scale-95 transition-all">返回</button>
+                                    <button onClick={downloadPhoto} className="flex-[2] py-3 bg-cyan-400 text-white rounded-full font-bold shadow-md active:scale-95 transition-all">
+                                        {isGenerating ? '正在处理...' : '确认保存'}
+                                    </button>
+                                </div>
                             </div>
                         </div>
                     )}
 
-                    {/* 开屏页 */}
-                    {showHint && (
-                        <div className="fixed inset-0 z-[200] backdrop-only-blur flex flex-col items-center justify-center p-6" onClick={() => setShowHint(false)}>
-                            <div className="relative flex flex-col items-center max-w-sm w-full">
-                                <img src={getAssetUrl(START_HINT)} className="w-64 md:w-80 drop-shadow-[0_20px_50px_rgba(255,133,161,0.5)] mb-8" />
-                                <button className="px-10 py-3 bg-white rounded-full text-pink-500 font-black text-xl md:text-2xl shadow-2xl border-4 border-pink-200 active:scale-90 transition-all">
-                                    点击开始游戏
-                                </button>
-                            </div>
+                    {/* 引导页 */}
+                    {showStartHint && (
+                        <div className="fixed inset-0 z-[200] bg-gradient-to-b from-[#E0F7FA] to-[#B2EBF2] flex flex-col items-center justify-center p-6" onClick={() => setShowStartHint(false)}>
+                            <img src={getAssetUrl(START_HINT_IMAGE)} className="w-64 md:w-80 mb-10 drop-shadow-xl animate-bounce" style={{animationDuration: '3s'}} />
+                            <button className="px-14 py-4 bg-white text-cyan-400 rounded-full text-2xl font-black shadow-xl active:scale-90 transition-all">
+                                点击开始
+                            </button>
                         </div>
                     )}
                 </div>
