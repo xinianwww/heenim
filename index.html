@@ -31,12 +31,22 @@
         }
         .animate-photo-pop { animation: photoPop 0.5s cubic-bezier(0.17, 0.89, 0.32, 1.28) forwards; }
 
-        /* GPU 加速優化 */
+        /* 核心修复：强制硬件加速，防止重绘闪烁 */
         .acc-layer { 
-            will-change: transform; 
-            transition: none !important;
+            will-change: transform;
             -webkit-backface-visibility: hidden;
             backface-visibility: hidden;
+            -webkit-transform-style: preserve-3d;
+            transform-style: preserve-3d;
+            /* 使用 CSS 变量来接收坐标，减少 React 重新渲染带来的开销 */
+            transform: translate3d(var(--acc-x, 0px), var(--acc-y, 0px), 0);
+        }
+
+        /* 确保所有层级图片都开启 GPU 渲染，防止层级穿透导致的闪白 */
+        .character-render-zone img {
+            -webkit-backface-visibility: hidden;
+            backface-visibility: hidden;
+            transform: translateZ(0); 
         }
 
         .outer-frame-container {
@@ -46,8 +56,6 @@
             box-shadow: 0 10px 40px rgba(0,0,0,0.1);
             background: #fff;
         }
-
-
 
         .character-render-zone {
             position: absolute;
@@ -61,7 +69,6 @@
 
     <script type="text/babel">
         const { useState, useEffect, useRef } = React;
-
         const App = () => {
             const getAssetUrl = (url) => {
                 if (!url) return null;
@@ -70,8 +77,7 @@
 
             const BODY_IMAGE = "https://github.com/xinianwww/xinianwwww/blob/main/%E8%BA%AB%E4%BD%93.png";
             const START_HINT_IMAGE = "https://github.com/xinianwww/xinianwwww/blob/main/tishi.png";
-
-             const ASSETS = {
+            const ASSETS = {
                 hair: [
                     { id: 'h1', url: "https://github.com/xinianwww/xinianwwww/blob/main/%E5%A4%B4%E5%8F%911.png" },
                     { id: 'h2', url: "https://github.com/xinianwww/xinianwwww/blob/main/%E5%A4%B4%E5%8F%912.png" },
@@ -117,7 +123,6 @@
                     { id: 'a9', url: "https://github.com/xinianwww/xinianwwww/blob/main/sp9.png" }, 
                     { id: 'a10', url: "https://github.com/xinianwww/xinianwwww/blob/main/sp10.png" }, 
                     { id: 'a11', url: "https://github.com/xinianwww/xinianwwww/blob/main/sp11.png" }, 
-            
                 ],
                 suit: [
                     { id: 's1', url: "https://github.com/xinianwww/xinianwwww/blob/main/%E5%A5%97%E8%A3%851.png" },
@@ -132,7 +137,6 @@
                     { id: 'bg4', url: "https://github.com/xinianwww/xinianwwww/blob/main/%E8%83%8C%E6%99%AF4.png" },
                     { id: 'bg5', url: "https://github.com/xinianwww/xinianwwww/blob/main/%E8%83%8C%E6%99%AF5.png" },
                     { id: 'bg6', url: "https://github.com/xinianwww/xinianwwww/blob/main/%E8%83%8C%E6%99%AF6.png" },
-
                 ]
             };
 
@@ -167,6 +171,7 @@
                 dragStart.current = { x: e.clientX - accPos.x, y: e.clientY - accPos.y };
                 e.currentTarget.setPointerCapture(e.pointerId);
             };
+
             const onPointerMove = (e) => {
                 if (!isDragging) return;
                 setAccPos({ x: e.clientX - dragStart.current.x, y: e.clientY - dragStart.current.y });
@@ -176,7 +181,6 @@
             const DollDisplay = ({ preview = false }) => (
                 <div className="relative w-full h-full flex items-center justify-center overflow-hidden">
                     <div className="outer-frame-container h-[96%] aspect-[3/4] w-auto">
-                        
                         <img src={getAssetUrl(selections.background?.url)} className="absolute inset-0 w-full h-full object-cover z-0" crossOrigin="anonymous" />
                         
                         <div className="character-render-zone">
@@ -188,23 +192,16 @@
                             
                             {selections.accessory && (
                                 <div className="absolute inset-0 z-50 pointer-events-none acc-layer" 
-                                     style={{ transform: `translate3d(${accPos.x}px, ${accPos.y}px, 0)` }}>
+                                     style={{ '--acc-x': `${accPos.x}px`, '--acc-y': `${accPos.y}px` }}>
                                     <img src={getAssetUrl(selections.accessory.url)} className="w-full h-full object-contain" crossOrigin="anonymous" />
                                 </div>
                             )}
                             
                             {!preview && selections.accessory && activeTab === 'accessory' && (
                                 <div className="absolute inset-0 z-[60] cursor-move touch-none" 
-                                     onPointerDown={onPointerDown} onPointerMove={onPointerMove} onPointerUp={onPointerUp} />
+                                   onPointerDown={onPointerDown} onPointerMove={onPointerMove} onPointerUp={onPointerUp} />
                             )}
                         </div>
-
-                        {!preview && (
-                            <>
-                                <div className="glass-blur-layer" />
-                                <div className="inner-line-box" />
-                            </>
-                        )}
                     </div>
                 </div>
             );
@@ -212,7 +209,6 @@
             return (
                 <div className="w-full h-full flex items-center justify-center p-0 md:p-4">
                     <div className="w-full h-full max-w-[1200px] max-h-[900px] md:h-[90vh] bg-white/60 backdrop-blur-md md:rounded-[3rem] shadow-2xl flex flex-col md:flex-row overflow-hidden">
-                        
                         <div className="w-full h-[48%] md:w-[48%] md:h-full relative flex flex-col border-b md:border-b-0 md:border-r border-cyan-100/50">
                             <div className="flex-1 p-3 md:p-4 overflow-hidden">
                                 <DollDisplay preview={false} />
@@ -232,7 +228,7 @@
                                 {['hair', 'face', 'clothes', 'suit', 'accessory', 'background'].map(tab => (
                                     <button key={tab} onClick={() => setActiveTab(tab)}
                                         className={`px-5 py-2 rounded-full whitespace-nowrap font-bold transition-all text-sm active:scale-95 shrink-0 ${activeTab === tab ? 'bg-cyan-500 text-white shadow-md' : 'text-cyan-400 bg-white/80'}`}>
-                                        {tab === 'hair' ? '发型' : tab === 'face' ? '表情' : tab === 'clothes' ? '衣服' : tab === 'suit' ? '套裝' : tab === 'accessory' ? '饰品' : '背景'}
+                                        {tab === 'hair' ? '发型' : tab === 'face' ? '表情' : tab === 'clothes' ? '衣服' : tab === 'suit' ? '套装' : tab === 'accessory' ? '饰品' : '背景'}
                                     </button>
                                 ))}
                             </div>
@@ -240,7 +236,7 @@
                                 <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-3 gap-4">
                                     {ASSETS[activeTab].map(item => (
                                         <div key={item.id} onClick={() => setSelections(p => ({...p, [activeTab]: p[activeTab]?.id === item.id ? (activeTab==='accessory'||activeTab==='suit'?null:p[activeTab]) : item, suit: activeTab==='suit'?item:(activeTab==='hair'||activeTab==='clothes'?null:p.suit), hair: activeTab==='suit'?null:(activeTab==='hair'?item:p.hair), clothes: activeTab==='suit'?null:(activeTab==='clothes'?item:p.clothes)}))}
-                                            className={`aspect-square rounded-[1.5rem] flex items-center justify-center cursor-pointer border-2 transition-all bg-white/90 active:scale-95 active:bg-cyan-50 ${selections[activeTab]?.id === item.id ? 'border-cyan-400 bg-cyan-50' : 'border-transparent hover:bg-white'}`}>
+                                               className={`aspect-square rounded-[1.5rem] flex items-center justify-center cursor-pointer border-2 transition-all bg-white/90 active:scale-95 active:bg-cyan-50 ${selections[activeTab]?.id === item.id ? 'border-cyan-400 bg-cyan-50' : 'border-transparent hover:bg-white'}`}>
                                             <img src={getAssetUrl(item.url)} className="max-w-[85%] max-h-[85%] object-contain" crossOrigin="anonymous" />
                                         </div>
                                     ))}
@@ -258,7 +254,8 @@
                                 </div>
                                 <div className="absolute bottom-4 left-3 right-3 flex gap-3">
                                     <button onClick={() => setShowPhoto(false)} className="flex-1 py-3 bg-gray-100 text-gray-500 rounded-full font-bold active:scale-95 transition-all">返回</button>
-                                    <button onClick={async () => { if(isGenerating)return; setIsGenerating(true); const canvas = await html2canvas(photoRef.current, {useCORS:true, scale:3}); const link = document.createElement('a'); link.download=`Star_${Date.now()}.png`; link.href=canvas.toDataURL(); link.click(); setIsGenerating(false); }} className="flex-[2] py-3 bg-cyan-400 text-white rounded-full font-bold shadow-md active:scale-95 transition-all">保存相片</button>
+                                    <button onClick={async () => { if(isGenerating)return; setIsGenerating(true); const canvas = await html2canvas(photoRef.current, {useCORS:true, scale:3});
+                                        const link = document.createElement('a'); link.download=`Star_${Date.now()}.png`; link.href=canvas.toDataURL(); link.click(); setIsGenerating(false); }} className="flex-[2] py-3 bg-cyan-400 text-white rounded-full font-bold shadow-md active:scale-95 transition-all">保存相片</button>
                                 </div>
                             </div>
                         </div>
