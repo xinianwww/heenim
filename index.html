@@ -25,7 +25,7 @@
         .custom-scrollbar::-webkit-scrollbar { width: 4px; }
         .custom-scrollbar::-webkit-scrollbar-thumb { background: #81D4FA; border-radius: 10px; }
         
-        /* 核心修复：强制开启 GPU 加速，并将图片层级固定，减少重排 */
+        /* 核心修复：强制开启硬件加速 */
         .character-layer {
             position: absolute;
             inset: 0;
@@ -34,11 +34,9 @@
             object-fit: contain;
             pointer-events: none;
             will-change: transform, opacity;
-            transform: translateZ(0); /* 强制分层 */
+            transform: translateZ(0); 
             -webkit-backface-visibility: hidden;
             backface-visibility: hidden;
-            /* 关键：给图片增加一个极短的淡入效果，平滑切换瞬间的空档 */
-            transition: opacity 0.1s ease-in-out; 
         }
 
         .acc-layer-wrapper {
@@ -65,17 +63,44 @@
     <script type="text/babel">
         const { useState, useEffect, useRef, memo } = React;
 
-        // 子组件：静态层级。通过 memo 确保只有当 URL 变化时才更新图片
-        const LayerImage = memo(({ src, zIndex, className = "" }) => {
-            if (!src) return null;
+        // 【关键组件】双缓冲图片层：防止切换时的白屏
+        const SafeLayerImage = memo(({ src, zIndex, className = "" }) => {
+            const [currentSrc, setCurrentSrc] = useState(src);
+            const [pendingSrc, setPendingSrc] = useState(null);
+
+            useEffect(() => {
+                if (src !== currentSrc) {
+                    setPendingSrc(src); // 准备加载新图
+                }
+            }, [src]);
+
+            const handleLoad = () => {
+                if (pendingSrc) {
+                    setCurrentSrc(pendingSrc); // 新图加载完毕，正式替换
+                    setPendingSrc(null);
+                }
+            };
+
             return (
-                <img 
-                    src={src} 
-                    className={`character-layer ${className}`} 
-                    style={{ zIndex }} 
-                    crossOrigin="anonymous" 
-                    onLoad={(e) => e.target.style.opacity = 1}
-                />
+                <div className="absolute inset-0" style={{ zIndex }}>
+                    {/* 当前显示的图片（旧图或已加载好的新图） */}
+                    {currentSrc && (
+                        <img 
+                            src={currentSrc} 
+                            className={`character-layer ${className}`} 
+                            crossOrigin="anonymous" 
+                        />
+                    )}
+                    {/* 后台静默加载的新图片 */}
+                    {pendingSrc && (
+                        <img 
+                            src={pendingSrc} 
+                            style={{ opacity: 0, position: 'absolute' }} 
+                            onLoad={handleLoad}
+                            crossOrigin="anonymous" 
+                        />
+                    )}
+                </div>
             );
         });
 
@@ -86,7 +111,7 @@
             };
 
             const BODY_IMAGE = getAssetUrl("https://github.com/xinianwww/xinianwwww/blob/main/%E8%BA%AB%E4%BD%93.png");
-            const START_HINT_IMAGE = "https://github.com/xinianwww/xinianwwww/blob/main/tishi.png";
+            const START_HINT_IMAGE = getAssetUrl("https://github.com/xinianwww/xinianwwww/blob/main/tishi.png");
             
             const ASSETS = {
                 hair: Array.from({length: 10}, (_, i) => ({ id: `h${i+1}`, url: getAssetUrl(`https://github.com/xinianwww/xinianwwww/blob/main/%E5%A4%B4%E5%8F%91${i+1}.png`) })),
@@ -112,14 +137,7 @@
             const dragStart = useRef({ x: 0, y: 0 });
             const photoRef = useRef(null);
 
-            // 预加载所有资源防止点击瞬间白屏
-            useEffect(() => {
-                Object.values(ASSETS).flat().forEach(item => {
-                    const img = new Image();
-                    img.src = item.url;
-                });
-            }, []);
-
+            // 切换饰品逻辑
             useEffect(() => {
                 accPosRef.current = { x: 0, y: 0 };
                 if (accDomRef.current) accDomRef.current.style.transform = `translate3d(0px, 0px, 0)`;
@@ -143,27 +161,22 @@
             const DollDisplay = ({ preview = false }) => (
                 <div className="relative w-full h-full flex items-center justify-center overflow-hidden">
                     <div className="outer-frame-container h-[96%] aspect-[3/4] w-auto">
-                        {/* 背景层 */}
-                        <LayerImage src={selections.background?.url} zIndex={0} className="object-cover" />
+                        <SafeLayerImage src={selections.background?.url} zIndex={0} className="object-cover" />
                         
                         <div className="absolute inset-0 z-10">
-                            {/* 身体层 - 静态，永远不应该闪烁 */}
-                            <LayerImage src={BODY_IMAGE} zIndex={10} />
+                            <SafeLayerImage src={BODY_IMAGE} zIndex={10} />
+                            <SafeLayerImage src={selections.face?.url} zIndex={20} />
+                            <SafeLayerImage src={selections.clothes?.url} zIndex={30} />
+                            <SafeLayerImage src={selections.suit?.url} zIndex={30} />
+                            <SafeLayerImage src={selections.hair?.url} zIndex={40} />
                             
-                            {/* 部件层 - 只有对应部件改变时才会更新该层 DOM */}
-                            <LayerImage src={selections.face?.url} zIndex={20} />
-                            <LayerImage src={selections.clothes?.url} zIndex={30} />
-                            <LayerImage src={selections.suit?.url} zIndex={30} />
-                            <LayerImage src={selections.hair?.url} zIndex={40} />
-                            
-                            {/* 饰品层 */}
                             {selections.accessory && (
                                 <div 
                                     ref={preview ? null : accDomRef}
                                     className="acc-layer-wrapper"
                                     style={preview ? { transform: `translate3d(${accPosRef.current.x}px, ${accPosRef.current.y}px, 0)` } : {}}
                                 >
-                                    <LayerImage src={selections.accessory.url} zIndex={50} />
+                                    <SafeLayerImage src={selections.accessory.url} zIndex={50} />
                                 </div>
                             )}
                             
@@ -176,7 +189,6 @@
                 </div>
             );
 
-            // 其余逻辑（handleRandom, UI 返回等）保持不变...
             const handleRandom = () => {
                 const pick = (arr) => arr[Math.floor(Math.random() * arr.length)];
                 const useSuit = Math.random() > 0.7; 
@@ -191,6 +203,7 @@
             return (
                 <div className="w-full h-full flex items-center justify-center p-0 md:p-4">
                     <div className="w-full h-full max-w-[1200px] max-h-[900px] md:h-[90vh] bg-white/60 backdrop-blur-md md:rounded-[3rem] shadow-2xl flex flex-col md:flex-row overflow-hidden">
+                        {/* 左侧展示 */}
                         <div className="w-full h-[48%] md:w-[48%] md:h-full relative flex flex-col border-b md:border-b-0 md:border-r border-cyan-100/50">
                             <div className="flex-1 p-3 md:p-4 overflow-hidden">
                                 <DollDisplay preview={false} />
@@ -205,6 +218,7 @@
                             </div>
                         </div>
 
+                        {/* 右侧列表 */}
                         <div className="w-full h-[52%] md:w-[52%] md:h-full flex flex-col bg-white/40 overflow-hidden">
                             <div className="flex gap-2 p-3 overflow-x-auto custom-scrollbar border-b border-cyan-50 shrink-0">
                                 {['hair', 'face', 'clothes', 'suit', 'accessory', 'background'].map(tab => (
@@ -245,7 +259,7 @@
 
                     {showStartHint && (
                         <div className="fixed inset-0 z-[200] bg-gradient-to-b from-[#E0F7FA] to-[#B2EBF2] flex flex-col items-center justify-center p-6" onClick={() => setShowStartHint(false)}>
-                            <img src={getAssetUrl(START_HINT_IMAGE)} className="w-[85%] max-w-[450px] mb-12 drop-shadow-2xl animate-bounce" style={{animationDuration: '3s'}} />
+                            <img src={START_HINT_IMAGE} className="w-[85%] max-w-[450px] mb-12 drop-shadow-2xl animate-bounce" style={{animationDuration: '3s'}} />
                             <button className="px-14 py-4 bg-white text-cyan-400 rounded-full text-2xl font-black shadow-xl active:scale-90 transition-all border-2 border-cyan-50">点击开始</button>
                         </div>
                     )}
