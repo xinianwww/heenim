@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>宇宙大明星換衣間 - 修复版</title>
+    <title>宇宙大明星換衣間 - 完整保存版</title>
     <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
@@ -75,7 +75,6 @@
                     img.src = src;
                     img.onload = () => { setDisplaySrc(src); };
                 }
-                // 如果 src 变成 null，也要同步隐藏
                 if (!src) setDisplaySrc(null);
             }, [src]);
 
@@ -103,25 +102,21 @@
             const [activeTab, setActiveTab] = useState('hair');
             const [showStartHint, setShowStartHint] = useState(true);
             const [showPhoto, setShowPhoto] = useState(false);
+            const [finalImage, setFinalImage] = useState(null); // 存储生成的图片
             
             const accPosRef = useRef({ x: 0, y: 0 });
             const accDomRef = useRef(null);
             const isDragging = useRef(false);
             const dragStart = useRef({ x: 0, y: 0 });
+            const photoCaptureRef = useRef(null);
 
-            // 核心修复：选择逻辑
             const handleSelect = useCallback((item) => {
                 setSelections(p => {
                     const newState = { ...p };
                     if (activeTab === 'suit') {
-                        // 选套装：清空发型和衣服
-                        newState.suit = item;
-                        newState.hair = null;
-                        newState.clothes = null;
+                        newState.suit = item; newState.hair = null; newState.clothes = null;
                     } else if (activeTab === 'hair' || activeTab === 'clothes') {
-                        // 选发型或衣服：清空套装
-                        newState[activeTab] = item;
-                        newState.suit = null;
+                        newState[activeTab] = item; newState.suit = null;
                     } else if (activeTab === 'accessory') {
                         const isSame = p.accessory?.id === item.id;
                         accPosRef.current = { x: 0, y: 0 };
@@ -134,17 +129,30 @@
                 });
             }, [activeTab]);
 
-            // 核心修复：随机逻辑
             const handleRandom = () => {
                 const pick = (arr) => arr[Math.floor(Math.random() * arr.length)];
                 const useSuit = Math.random() > 0.5; 
                 accPosRef.current = { x: 0, y: 0 };
                 if (accDomRef.current) accDomRef.current.style.transform = `translate3d(0,0,0)`;
-
                 if (useSuit) {
                     setSelections({ hair: null, clothes: null, suit: pick(ASSETS.suit), face: pick(ASSETS.face), background: pick(ASSETS.background), accessory: null });
                 } else {
                     setSelections({ suit: null, hair: pick(ASSETS.hair), clothes: pick(ASSETS.clothes), face: pick(ASSETS.face), background: pick(ASSETS.background), accessory: Math.random() > 0.5 ? pick(ASSETS.accessory) : null });
+                }
+            };
+
+            const generatePhoto = async () => {
+                if (!photoCaptureRef.current) return;
+                try {
+                    const canvas = await html2canvas(photoCaptureRef.current, {
+                        useCORS: true,
+                        scale: 3,
+                        backgroundColor: null
+                    });
+                    const dataUrl = canvas.toDataURL("image/png");
+                    setFinalImage(dataUrl);
+                } catch (err) {
+                    console.error("生成失败", err);
                 }
             };
 
@@ -159,6 +167,7 @@
             return (
                 <div className="w-full h-full flex items-center justify-center">
                     <div className="w-full h-full max-w-[1200px] flex flex-col md:flex-row bg-white/40 backdrop-blur-md md:h-[90vh] md:rounded-[3rem] overflow-hidden shadow-2xl">
+                        {/* 左侧展示 */}
                         <div className="w-full h-[48%] md:w-[48%] md:h-full relative flex flex-col border-b md:border-b-0 md:border-r border-cyan-100/30">
                             <div className="flex-1 p-4 relative overflow-hidden">
                                 <div className="outer-frame-container h-full aspect-[3/4] mx-auto relative">
@@ -191,6 +200,7 @@
                             </div>
                         </div>
 
+                        {/* 右侧列表 */}
                         <div className="w-full h-[52%] md:w-[52%] md:h-full flex flex-col bg-white/30">
                             <div className="flex gap-2 p-3 overflow-x-auto custom-scrollbar border-b border-cyan-50 shrink-0">
                                 {['hair', 'face', 'clothes', 'suit', 'accessory', 'background'].map(tab => (
@@ -213,25 +223,40 @@
                         </div>
                     </div>
 
+                    {/* 拍立得预览窗口 */}
                     {showPhoto && (
                         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/50 backdrop-blur-md" onClick={() => setShowPhoto(false)}>
                             <div className="bg-white p-3 pb-20 shadow-2xl rounded-sm max-w-[340px] w-full border-[12px] border-white relative" onClick={e => e.stopPropagation()}>
-                                <div className="aspect-[3/4] bg-gray-50 overflow-hidden relative">
+                                <div ref={photoCaptureRef} className="aspect-[3/4] bg-gray-50 overflow-hidden relative">
                                     <ImageLayer src={selections.background?.url} zIndex={0} isBackground={true} />
-                                    <img src={BODY_IMAGE} className="character-layer" style={{zIndex:10}} />
+                                    <img src={BODY_IMAGE} className="character-layer" style={{zIndex:10}} crossOrigin="anonymous" />
                                     <ImageLayer src={selections.face?.url} zIndex={20} />
                                     <ImageLayer src={selections.clothes?.url} zIndex={30} />
                                     <ImageLayer src={selections.suit?.url} zIndex={35} />
                                     <ImageLayer src={selections.hair?.url} zIndex={40} />
                                     {selections.accessory && (
                                         <div className="acc-layer-wrapper" style={{zIndex:50, position:'absolute', inset:0, transform: `translate3d(${accPosRef.current.x}px, ${accPosRef.current.y}px, 0)`}}>
-                                            <img src={selections.accessory.url} className="character-layer" />
+                                            <img src={selections.accessory.url} className="character-layer" crossOrigin="anonymous" />
                                         </div>
                                     )}
                                 </div>
                                 <div className="absolute bottom-4 left-3 right-3 flex gap-3">
                                     <button onClick={() => setShowPhoto(false)} className="flex-1 py-3 bg-gray-100 text-gray-500 rounded-full font-bold">返回</button>
-                                    <button onClick={() => alert('保存成功')} className="flex-[2] py-3 bg-cyan-400 text-white rounded-full font-bold shadow-md">保存相片</button>
+                                    <button onClick={generatePhoto} className="flex-[2] py-3 bg-cyan-400 text-white rounded-full font-bold shadow-md">生成照片</button>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* 最终生成的图片 - 提供给用户长按保存 */}
+                    {finalImage && (
+                        <div className="fixed inset-0 z-[210] bg-black/80 flex flex-col items-center justify-center p-6" onClick={() => setFinalImage(null)}>
+                            <div className="relative animate-photo-pop" onClick={e => e.stopPropagation()}>
+                                <img src={finalImage} className="max-w-full max-h-[70vh] rounded-lg shadow-2xl border-4 border-white" />
+                                <div className="mt-6 text-white text-center">
+                                    <p className="text-xl font-bold mb-2">✨ 照片已生成 ✨</p>
+                                    <p className="opacity-80">长按上方图片即可保存到手机相册</p>
+                                    <button onClick={() => setFinalImage(null)} className="mt-6 px-8 py-2 bg-white/20 border border-white/50 rounded-full">返回</button>
                                 </div>
                             </div>
                         </div>
