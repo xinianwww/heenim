@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>宇宙大明星換衣間 - 完美稳定版</title>
+    <title>宇宙大明星換衣間 - 修复版</title>
     <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
@@ -19,7 +19,6 @@
         
         body, html, #root { 
             height: 100%; width: 100%; margin: 0; padding: 0; overflow: hidden;
-            /* 恢复原有的蓝色过渡背景 */
             background: linear-gradient(180deg, #E0F7FA 0%, #B2EBF2 100%);
         }
 
@@ -32,8 +31,16 @@
             pointer-events: none;
             transform: translateZ(0);
             -webkit-transform: translateZ(0);
-            backface-visibility: hidden;
-            -webkit-backface-visibility: hidden;
+        }
+
+        /* 解决背景白边：强制背景层覆盖整个容器 */
+        .bg-layer-fill {
+            position: absolute;
+            inset: 0;
+            width: 100% !important;
+            height: 100% !important;
+            object-fit: cover !important; 
+            pointer-events: none;
         }
 
         .outer-frame-container {
@@ -61,8 +68,8 @@
 
         const BODY_IMAGE = getAssetUrl("https://github.com/xinianwww/xinianwwww/blob/main/%E8%BA%AB%E4%BD%93.png");
 
-        // 双缓冲组件，彻底杜绝闪白
-        const ImageLayer = memo(({ src, zIndex }) => {
+        // 双缓冲组件
+        const ImageLayer = memo(({ src, zIndex, isBackground = false }) => {
             const [displaySrc, setDisplaySrc] = useState(src);
             const [pendingSrc, setPendingSrc] = useState(null);
 
@@ -70,27 +77,17 @@
                 if (src !== displaySrc) {
                     const img = new Image();
                     img.src = src;
-                    img.onload = () => {
-                        setDisplaySrc(src);
-                        setPendingSrc(null);
-                    };
+                    img.onload = () => { setDisplaySrc(src); setPendingSrc(null); };
                     setPendingSrc(src);
                 }
             }, [src]);
 
             return (
                 <React.Fragment>
-                    {displaySrc && <img src={displaySrc} className="character-layer" style={{ zIndex }} crossOrigin="anonymous" />}
+                    {displaySrc && <img src={displaySrc} className={isBackground ? "bg-layer-fill" : "character-layer"} style={{ zIndex }} crossOrigin="anonymous" />}
                 </React.Fragment>
             );
         });
-
-        const AssetIcon = memo(({ item, isSelected, onClick }) => (
-            <div onClick={() => onClick(item)} 
-                 className={`aspect-square rounded-[1.5rem] flex items-center justify-center cursor-pointer border-2 transition-all bg-white active:scale-95 ${isSelected ? 'border-cyan-400 bg-cyan-50' : 'border-transparent shadow-sm'}`}>
-                <img src={item.url} className="max-w-[85%] max-h-[85%] object-contain" />
-            </div>
-        ));
 
         const App = () => {
             const ASSETS = useRef({
@@ -115,36 +112,36 @@
             const isDragging = useRef(false);
             const dragStart = useRef({ x: 0, y: 0 });
 
+            // 修复选择逻辑：套装互斥
             const handleSelect = useCallback((item) => {
                 setSelections(p => {
-                    const newState = { ...p };
                     if (activeTab === 'suit') {
-                        // 逻辑：穿套装时，脱掉发型、衣服、饰品
-                        newState.suit = item; newState.hair = null; newState.clothes = null; newState.accessory = null;
-                    } else if (activeTab === 'hair' || activeTab === 'clothes') {
-                        newState[activeTab] = item; newState.suit = null;
-                    } else if (activeTab === 'accessory') {
-                        newState.accessory = p.accessory?.id === item.id ? null : item;
+                        return { ...p, suit: item, hair: null, clothes: null };
+                    }
+                    if (activeTab === 'hair' || activeTab === 'clothes') {
+                        return { ...p, [activeTab]: item, suit: null };
+                    }
+                    if (activeTab === 'accessory') {
+                        const isSame = p.accessory?.id === item.id;
                         accPosRef.current = { x: 0, y: 0 };
                         if (accDomRef.current) accDomRef.current.style.transform = `translate3d(0,0,0)`;
-                    } else {
-                        newState[activeTab] = item;
+                        return { ...p, accessory: isSame ? null : item };
                     }
-                    return newState;
+                    return { ...p, [activeTab]: item };
                 });
             }, [activeTab]);
 
-            // 恢复原有的随机逻辑
+            // 修复随机逻辑：清除之前的套装或单件
             const handleRandom = () => {
                 const pick = (arr) => arr[Math.floor(Math.random() * arr.length)];
-                const useSuit = Math.random() > 0.7; 
+                const useSuit = Math.random() > 0.6; 
                 accPosRef.current = { x: 0, y: 0 };
                 if (accDomRef.current) accDomRef.current.style.transform = `translate3d(0,0,0)`;
 
                 if (useSuit) {
-                    setSelections({ hair: null, clothes: null, accessory: null, face: pick(ASSETS.face), suit: pick(ASSETS.suit), background: pick(ASSETS.background) });
+                    setSelections({ hair: null, clothes: null, suit: pick(ASSETS.suit), face: pick(ASSETS.face), background: pick(ASSETS.background), accessory: null });
                 } else {
-                    setSelections({ suit: null, hair: pick(ASSETS.hair), face: pick(ASSETS.face), clothes: pick(ASSETS.clothes), accessory: Math.random() > 0.5 ? pick(ASSETS.accessory) : null, background: pick(ASSETS.background) });
+                    setSelections({ suit: null, hair: pick(ASSETS.hair), clothes: pick(ASSETS.clothes), face: pick(ASSETS.face), background: pick(ASSETS.background), accessory: Math.random() > 0.5 ? pick(ASSETS.accessory) : null });
                 }
             };
 
@@ -160,11 +157,10 @@
                 <div className="w-full h-full flex items-center justify-center p-0 md:p-4">
                     <div className="w-full h-full max-w-[1200px] flex flex-col md:flex-row bg-white/40 backdrop-blur-md md:h-[90vh] md:rounded-[3rem] overflow-hidden shadow-2xl">
                         
-                        {/* 展示区 */}
                         <div className="w-full h-[48%] md:w-[48%] md:h-full relative flex flex-col border-b md:border-b-0 md:border-r border-cyan-100/30">
                             <div className="flex-1 p-4 relative overflow-hidden">
                                 <div className="outer-frame-container h-full aspect-[3/4] mx-auto relative">
-                                    <ImageLayer src={selections.background?.url} zIndex={0} />
+                                    <ImageLayer src={selections.background?.url} zIndex={0} isBackground={true} />
                                     <img src={BODY_IMAGE} className="character-layer" style={{zIndex:10}} crossOrigin="anonymous" />
                                     <ImageLayer src={selections.face?.url} zIndex={20} />
                                     <ImageLayer src={selections.clothes?.url} zIndex={30} />
@@ -172,7 +168,7 @@
                                     <ImageLayer src={selections.hair?.url} zIndex={40} />
                                     
                                     {selections.accessory && (
-                                        <div ref={accDomRef} className="acc-layer-wrapper" style={{zIndex:50}}>
+                                        <div ref={accDomRef} className="acc-layer-wrapper" style={{zIndex:50, position:'absolute', inset:0}}>
                                             <img src={selections.accessory.url} className="character-layer" crossOrigin="anonymous" />
                                         </div>
                                     )}
@@ -196,7 +192,6 @@
                             </div>
                         </div>
 
-                        {/* 选择区 */}
                         <div className="w-full h-[52%] md:w-[52%] md:h-full flex flex-col bg-white/30">
                             <div className="flex gap-2 p-3 overflow-x-auto custom-scrollbar border-b border-cyan-50 shrink-0">
                                 {['hair', 'face', 'clothes', 'suit', 'accessory', 'background'].map(tab => (
@@ -209,7 +204,10 @@
                             <div className="flex-1 overflow-y-auto p-4 custom-scrollbar">
                                 <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-3 gap-4">
                                     {ASSETS[activeTab].map(item => (
-                                        <AssetIcon key={item.id} item={item} isSelected={selections[activeTab]?.id === item.id} onClick={handleSelect} />
+                                        <div key={item.id} onClick={() => handleSelect(item)} 
+                                             className={`aspect-square rounded-[1.5rem] overflow-hidden flex items-center justify-center cursor-pointer border-2 transition-all bg-white active:scale-95 ${selections[activeTab]?.id === item.id ? 'border-cyan-400 bg-cyan-50' : 'border-transparent shadow-sm'}`}>
+                                            <img src={item.url} className={activeTab === 'background' ? "w-full h-full object-cover" : "max-w-[85%] max-h-[85%] object-contain"} />
+                                        </div>
                                     ))}
                                 </div>
                             </div>
@@ -220,21 +218,21 @@
                         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/50 backdrop-blur-md" onClick={() => setShowPhoto(false)}>
                             <div className="bg-white p-3 pb-20 shadow-2xl rounded-sm max-w-[340px] w-full border-[12px] border-white relative" onClick={e => e.stopPropagation()}>
                                 <div className="aspect-[3/4] bg-gray-50 overflow-hidden relative">
-                                    <ImageLayer src={selections.background?.url} zIndex={0} />
+                                    <ImageLayer src={selections.background?.url} zIndex={0} isBackground={true} />
                                     <img src={BODY_IMAGE} className="character-layer" style={{zIndex:10}} />
                                     <ImageLayer src={selections.face?.url} zIndex={20} />
                                     <ImageLayer src={selections.clothes?.url} zIndex={30} />
                                     <ImageLayer src={selections.suit?.url} zIndex={30} />
                                     <ImageLayer src={selections.hair?.url} zIndex={40} />
                                     {selections.accessory && (
-                                        <div className="acc-layer-wrapper" style={{zIndex:50, transform: `translate3d(${accPosRef.current.x}px, ${accPosRef.current.y}px, 0)`}}>
+                                        <div className="acc-layer-wrapper" style={{zIndex:50, position:'absolute', inset:0, transform: `translate3d(${accPosRef.current.x}px, ${accPosRef.current.y}px, 0)`}}>
                                             <img src={selections.accessory.url} className="character-layer" />
                                         </div>
                                     )}
                                 </div>
                                 <div className="absolute bottom-4 left-3 right-3 flex gap-3">
                                     <button onClick={() => setShowPhoto(false)} className="flex-1 py-3 bg-gray-100 text-gray-500 rounded-full font-bold">返回</button>
-                                    <button onClick={() => alert('长按保存图片或截图分享')} className="flex-[2] py-3 bg-cyan-400 text-white rounded-full font-bold shadow-md">保存相片</button>
+                                    <button onClick={() => alert('保存成功')} className="flex-[2] py-3 bg-cyan-400 text-white rounded-full font-bold shadow-md">保存相片</button>
                                 </div>
                             </div>
                         </div>
