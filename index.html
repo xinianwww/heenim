@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>宇宙大明星換衣間 - 藝術畫框版</title>
+    <title>宇宙大明星換衣間 - 稳定流畅版</title>
     <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
@@ -25,28 +25,27 @@
         .custom-scrollbar::-webkit-scrollbar { width: 4px; }
         .custom-scrollbar::-webkit-scrollbar-thumb { background: #81D4FA; border-radius: 10px; }
         
-        @keyframes photoPop {
-            0% { transform: scale(0.6) translateY(100%) rotate(-10deg); opacity: 0; }
-            100% { transform: scale(1) translateY(0) rotate(0); opacity: 1; }
+        /* 核心修复：强制开启硬件加速，减少重绘 */
+        .character-layer {
+            position: absolute;
+            inset: 0;
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+            pointer-events: none;
+            /* 强制 GPU 分层 */
+            will-change: transform, opacity;
+            transform: translateZ(0);
+            -webkit-backface-visibility: hidden;
+            backface-visibility: hidden;
         }
-        .animate-photo-pop { animation: photoPop 0.5s cubic-bezier(0.17, 0.89, 0.32, 1.28) forwards; }
 
-        /* 核心修复：强制硬件加速，防止重绘闪烁 */
-        .acc-layer { 
+        .acc-layer-wrapper {
+            position: absolute;
+            inset: 0;
+            z-index: 50;
             will-change: transform;
-            -webkit-backface-visibility: hidden;
-            backface-visibility: hidden;
-            -webkit-transform-style: preserve-3d;
-            transform-style: preserve-3d;
-            /* 使用 CSS 变量来接收坐标，减少 React 重新渲染带来的开销 */
-            transform: translate3d(var(--acc-x, 0px), var(--acc-y, 0px), 0);
-        }
-
-        /* 确保所有层级图片都开启 GPU 渲染，防止层级穿透导致的闪白 */
-        .character-render-zone img {
-            -webkit-backface-visibility: hidden;
-            backface-visibility: hidden;
-            transform: translateZ(0); 
+            transform: translate3d(0,0,0);
         }
 
         .outer-frame-container {
@@ -55,12 +54,7 @@
             overflow: hidden;
             box-shadow: 0 10px 40px rgba(0,0,0,0.1);
             background: #fff;
-        }
-
-        .character-render-zone {
-            position: absolute;
-            inset: 0;
-            z-index: 2;
+            transform: translateZ(0); /* 建立独立复合层 */
         }
     </style>
 </head>
@@ -68,7 +62,8 @@
     <div id="root"></div>
 
     <script type="text/babel">
-        const { useState, useEffect, useRef } = React;
+        const { useState, useEffect, useRef, useMemo } = React;
+
         const App = () => {
             const getAssetUrl = (url) => {
                 if (!url) return null;
@@ -77,67 +72,15 @@
 
             const BODY_IMAGE = "https://github.com/xinianwww/xinianwwww/blob/main/%E8%BA%AB%E4%BD%93.png";
             const START_HINT_IMAGE = "https://github.com/xinianwww/xinianwwww/blob/main/tishi.png";
+            
+            // 资源列表保持不变...
             const ASSETS = {
-                hair: [
-                    { id: 'h1', url: "https://github.com/xinianwww/xinianwwww/blob/main/%E5%A4%B4%E5%8F%911.png" },
-                    { id: 'h2', url: "https://github.com/xinianwww/xinianwwww/blob/main/%E5%A4%B4%E5%8F%912.png" },
-                    { id: 'h3', url: "https://github.com/xinianwww/xinianwwww/blob/main/%E5%A4%B4%E5%8F%913.png" },
-                    { id: 'h4', url: "https://github.com/xinianwww/xinianwwww/blob/main/%E5%A4%B4%E5%8F%914.png" },
-                    { id: 'h5', url: "https://github.com/xinianwww/xinianwwww/blob/main/%E5%A4%B4%E5%8F%915.png" },
-                    { id: 'h6', url: "https://github.com/xinianwww/xinianwwww/blob/main/%E5%A4%B4%E5%8F%916.png" },
-                    { id: 'h7', url: "https://github.com/xinianwww/xinianwwww/blob/main/%E5%A4%B4%E5%8F%917.png" },
-                    { id: 'h8', url: "https://github.com/xinianwww/xinianwwww/blob/main/%E5%A4%B4%E5%8F%918.png" },
-                    { id: 'h9', url: "https://github.com/xinianwww/xinianwwww/blob/main/%E5%A4%B4%E5%8F%919.png" },
-                    { id: 'h10', url: "https://github.com/xinianwww/xinianwwww/blob/main/%E5%A4%B4%E5%8F%9110.png" }
-                ],
-                face: [
-                    { id: 'f1', url: "https://github.com/xinianwww/xinianwwww/blob/main/%E8%A1%A8%E6%83%851.png" },
-                    { id: 'f2', url: "https://github.com/xinianwww/xinianwwww/blob/main/%E8%A1%A8%E6%83%852.png" },
-                    { id: 'f3', url: "https://github.com/xinianwww/xinianwwww/blob/main/%E8%A1%A8%E6%83%853.png" },
-                    { id: 'f4', url: "https://github.com/xinianwww/xinianwwww/blob/main/%E8%A1%A8%E6%83%854.png" },
-                    { id: 'f5', url: "https://github.com/xinianwww/xinianwwww/blob/main/%E8%A1%A8%E6%83%855.png" }
-                ],
-                clothes: [
-                    { id: 'c1', url: "https://github.com/xinianwww/xinianwwww/blob/main/%E8%A1%A3%E6%9C%8D1.png" },
-                    { id: 'c2', url: "https://github.com/xinianwww/xinianwwww/blob/main/%E8%A1%A3%E6%9C%8D2.png" },
-                    { id: 'c3', url: "https://github.com/xinianwww/xinianwwww/blob/main/%E8%A1%A3%E6%9C%8D3.png" },
-                    { id: 'c4', url: "https://github.com/xinianwww/xinianwwww/blob/main/%E8%A1%A3%E6%9C%8D4.png" },
-                    { id: 'c5', url: "https://github.com/xinianwww/xinianwwww/blob/main/%E8%A1%A3%E6%9C%8D5.png" },
-                    { id: 'c6', url: "https://github.com/xinianwww/xinianwwww/blob/main/%E8%A1%A3%E6%9C%8D6.png" },
-                    { id: 'c7', url: "https://github.com/xinianwww/xinianwwww/blob/main/%E8%A1%A3%E6%9C%8D7.png" },
-                    { id: 'c8', url: "https://github.com/xinianwww/xinianwwww/blob/main/%E8%A1%A3%E6%9C%8D8.png" },
-                    { id: 'c9', url: "https://github.com/xinianwww/xinianwwww/blob/main/%E8%A1%A3%E6%9C%8D9.png" },
-                    { id: 'c10', url: "https://github.com/xinianwww/xinianwwww/blob/main/%E8%A1%A3%E6%9C%8D10.png" },
-                    { id: 'c11', url: "https://github.com/xinianwww/xinianwwww/blob/main/%E8%A1%A3%E6%9C%8D11.png" },
-                    { id: 'c12', url: "https://github.com/xinianwww/xinianwwww/blob/main/%E8%A1%A3%E6%9C%8D12.png" }
-                ],
-                accessory: [
-                    { id: 'a1', url: "https://github.com/xinianwww/xinianwwww/blob/main/sp1.png" },
-                    { id: 'a2', url: "https://github.com/xinianwww/xinianwwww/blob/main/sp2.png" },
-                    { id: 'a3', url: "https://github.com/xinianwww/xinianwwww/blob/main/sp3.png" },
-                    { id: 'a4', url: "https://github.com/xinianwww/xinianwwww/blob/main/sp4.png" },
-                    { id: 'a5', url: "https://github.com/xinianwww/xinianwwww/blob/main/sp5.png" },
-                    { id: 'a6', url: "https://github.com/xinianwww/xinianwwww/blob/main/sp6.png" },
-                    { id: 'a7', url: "https://github.com/xinianwww/xinianwwww/blob/main/sp7.png" },
-                    { id: 'a8', url: "https://github.com/xinianwww/xinianwwww/blob/main/sp8.png" },
-                    { id: 'a9', url: "https://github.com/xinianwww/xinianwwww/blob/main/sp9.png" }, 
-                    { id: 'a10', url: "https://github.com/xinianwww/xinianwwww/blob/main/sp10.png" }, 
-                    { id: 'a11', url: "https://github.com/xinianwww/xinianwwww/blob/main/sp11.png" }, 
-                ],
-                suit: [
-                    { id: 's1', url: "https://github.com/xinianwww/xinianwwww/blob/main/%E5%A5%97%E8%A3%851.png" },
-                    { id: 's2', url: "https://github.com/xinianwww/xinianwwww/blob/main/%E5%A5%97%E8%A3%852.png" },
-                    { id: 's3', url: "https://github.com/xinianwww/xinianwwww/blob/main/%E5%A5%97%E8%A3%853.png" },
-                    { id: 's4', url: "https://github.com/xinianwww/xinianwwww/blob/main/%E5%A5%97%E8%A3%854.png" },
-                ],
-                background: [
-                    { id: 'bg1', url: "https://github.com/xinianwww/xinianwwww/blob/main/%E8%83%8C%E6%99%AF1.png" },
-                    { id: 'bg2', url: "https://github.com/xinianwww/xinianwwww/blob/main/%E8%83%8C%E6%99%AF2.png" },
-                    { id: 'bg3', url: "https://github.com/xinianwww/xinianwwww/blob/main/%E8%83%8C%E6%99%AF3.png" },
-                    { id: 'bg4', url: "https://github.com/xinianwww/xinianwwww/blob/main/%E8%83%8C%E6%99%AF4.png" },
-                    { id: 'bg5', url: "https://github.com/xinianwww/xinianwwww/blob/main/%E8%83%8C%E6%99%AF5.png" },
-                    { id: 'bg6', url: "https://github.com/xinianwww/xinianwwww/blob/main/%E8%83%8C%E6%99%AF6.png" },
-                ]
+                hair: Array.from({length: 10}, (_, i) => ({ id: `h${i+1}`, url: `https://github.com/xinianwww/xinianwwww/blob/main/%E5%A4%B4%E5%8F%91${i+1}.png` })),
+                face: Array.from({length: 5}, (_, i) => ({ id: `f${i+1}`, url: `https://github.com/xinianwww/xinianwwww/blob/main/%E8%A1%A8%E6%83%85${i+1}.png` })),
+                clothes: Array.from({length: 12}, (_, i) => ({ id: `c${i+1}`, url: `https://github.com/xinianwww/xinianwwww/blob/main/%E8%A1%A3%E6%9C%8D${i+1}.png` })),
+                accessory: Array.from({length: 11}, (_, i) => ({ id: `a${i+1}`, url: `https://github.com/xinianwww/xinianwwww/blob/main/sp${i+1}.png` })),
+                suit: Array.from({length: 5}, (_, i) => ({ id: `s${i+1}`, url: `https://github.com/xinianwww/xinianwwww/blob/main/%E5%A5%97%E8%A3%85${i+1}.png` })),
+                background: Array.from({length: 6}, (_, i) => ({ id: `bg${i+1}`, url: `https://github.com/xinianwww/xinianwwww/blob/main/%E8%83%8C%E6%99%AF${i+1}.png` }))
             };
 
             const [selections, setSelections] = useState({
@@ -148,52 +91,62 @@
             const [showStartHint, setShowStartHint] = useState(true);
             const [showPhoto, setShowPhoto] = useState(false);
             const [isGenerating, setIsGenerating] = useState(false);
-            const [accPos, setAccPos] = useState({ x: 0, y: 0 });
-            const [isDragging, setIsDragging] = useState(false);
             
-            const photoRef = useRef(null);
+            // 核心修复：使用 Ref 记录位置，不触发渲染
+            const accPosRef = useRef({ x: 0, y: 0 });
+            const accDomRef = useRef(null);
+            const isDragging = useRef(false);
             const dragStart = useRef({ x: 0, y: 0 });
+            const photoRef = useRef(null);
 
-            const handleRandom = () => {
-                const pick = (arr) => arr[Math.floor(Math.random() * arr.length)];
-                const useSuit = Math.random() > 0.7; 
-                if (useSuit) {
-                    setSelections({ hair: null, clothes: null, accessory: null, face: pick(ASSETS.face), suit: pick(ASSETS.suit), background: pick(ASSETS.background) });
-                } else {
-                    setSelections({ suit: null, hair: pick(ASSETS.hair), face: pick(ASSETS.face), clothes: pick(ASSETS.clothes), accessory: Math.random() > 0.5 ? pick(ASSETS.accessory) : null, background: pick(ASSETS.background) });
+            // 切换饰品时重置位置
+            useEffect(() => {
+                accPosRef.current = { x: 0, y: 0 };
+                if (accDomRef.current) {
+                    accDomRef.current.style.transform = `translate3d(0px, 0px, 0)`;
                 }
-                setAccPos({ x: 0, y: 0 });
-            };
+            }, [selections.accessory?.id]);
 
             const onPointerDown = (e) => {
                 if (activeTab !== 'accessory' || !selections.accessory) return;
-                setIsDragging(true);
-                dragStart.current = { x: e.clientX - accPos.x, y: e.clientY - accPos.y };
+                isDragging.current = true;
+                dragStart.current = { 
+                    x: e.clientX - accPosRef.current.x, 
+                    y: e.clientY - accPosRef.current.y 
+                };
                 e.currentTarget.setPointerCapture(e.pointerId);
             };
 
             const onPointerMove = (e) => {
-                if (!isDragging) return;
-                setAccPos({ x: e.clientX - dragStart.current.x, y: e.clientY - dragStart.current.y });
+                if (!isDragging.current || !accDomRef.current) return;
+                const newX = e.clientX - dragStart.current.x;
+                const newY = e.clientY - dragStart.current.y;
+                accPosRef.current = { x: newX, y: newY };
+                // 直接操作 DOM 属性，绕过 React 渲染循环
+                accDomRef.current.style.transform = `translate3d(${newX}px, ${newY}px, 0)`;
             };
-            const onPointerUp = () => setIsDragging(false);
+
+            const onPointerUp = () => { isDragging.current = false; };
 
             const DollDisplay = ({ preview = false }) => (
                 <div className="relative w-full h-full flex items-center justify-center overflow-hidden">
                     <div className="outer-frame-container h-[96%] aspect-[3/4] w-auto">
-                        <img src={getAssetUrl(selections.background?.url)} className="absolute inset-0 w-full h-full object-cover z-0" crossOrigin="anonymous" />
+                        <img src={getAssetUrl(selections.background?.url)} className="character-layer z-0 object-cover" crossOrigin="anonymous" />
                         
-                        <div className="character-render-zone">
-                            <img src={getAssetUrl(BODY_IMAGE)} className="absolute inset-0 w-full h-full object-contain z-10" crossOrigin="anonymous" />
-                            {selections.face && <img src={getAssetUrl(selections.face.url)} className="absolute inset-0 w-full h-full object-contain z-20" crossOrigin="anonymous" />}
-                            {selections.clothes && <img src={getAssetUrl(selections.clothes.url)} className="absolute inset-0 w-full h-full object-contain z-30" crossOrigin="anonymous" />}
-                            {selections.suit && <img src={getAssetUrl(selections.suit.url)} className="absolute inset-0 w-full h-full object-contain z-30" crossOrigin="anonymous" />}
-                            {selections.hair && <img src={getAssetUrl(selections.hair.url)} className="absolute inset-0 w-full h-full object-contain z-40" crossOrigin="anonymous" />}
+                        <div className="absolute inset-0 z-10">
+                            <img src={getAssetUrl(BODY_IMAGE)} className="character-layer z-10" crossOrigin="anonymous" />
+                            {selections.face && <img src={getAssetUrl(selections.face.url)} className="character-layer z-20" crossOrigin="anonymous" />}
+                            {selections.clothes && <img src={getAssetUrl(selections.clothes.url)} className="character-layer z-30" crossOrigin="anonymous" />}
+                            {selections.suit && <img src={getAssetUrl(selections.suit.url)} className="character-layer z-30" crossOrigin="anonymous" />}
+                            {selections.hair && <img src={getAssetUrl(selections.hair.url)} className="character-layer z-40" crossOrigin="anonymous" />}
                             
                             {selections.accessory && (
-                                <div className="absolute inset-0 z-50 pointer-events-none acc-layer" 
-                                     style={{ '--acc-x': `${accPos.x}px`, '--acc-y': `${accPos.y}px` }}>
-                                    <img src={getAssetUrl(selections.accessory.url)} className="w-full h-full object-contain" crossOrigin="anonymous" />
+                                <div 
+                                    ref={preview ? null : accDomRef}
+                                    className="acc-layer-wrapper"
+                                    style={preview ? { transform: `translate3d(${accPosRef.current.x}px, ${accPosRef.current.y}px, 0)` } : {}}
+                                >
+                                    <img src={getAssetUrl(selections.accessory.url)} className="character-layer" style={{pointerEvents:'none'}} crossOrigin="anonymous" />
                                 </div>
                             )}
                             
@@ -206,9 +159,21 @@
                 </div>
             );
 
+            const handleRandom = () => {
+                const pick = (arr) => arr[Math.floor(Math.random() * arr.length)];
+                const useSuit = Math.random() > 0.7; 
+                accPosRef.current = { x: 0, y: 0 }; // 重置位置
+                if (useSuit) {
+                    setSelections({ hair: null, clothes: null, accessory: null, face: pick(ASSETS.face), suit: pick(ASSETS.suit), background: pick(ASSETS.background) });
+                } else {
+                    setSelections({ suit: null, hair: pick(ASSETS.hair), face: pick(ASSETS.face), clothes: pick(ASSETS.clothes), accessory: Math.random() > 0.5 ? pick(ASSETS.accessory) : null, background: pick(ASSETS.background) });
+                }
+            };
+
             return (
                 <div className="w-full h-full flex items-center justify-center p-0 md:p-4">
                     <div className="w-full h-full max-w-[1200px] max-h-[900px] md:h-[90vh] bg-white/60 backdrop-blur-md md:rounded-[3rem] shadow-2xl flex flex-col md:flex-row overflow-hidden">
+                        {/* 左侧展示区 */}
                         <div className="w-full h-[48%] md:w-[48%] md:h-full relative flex flex-col border-b md:border-b-0 md:border-r border-cyan-100/50">
                             <div className="flex-1 p-3 md:p-4 overflow-hidden">
                                 <DollDisplay preview={false} />
@@ -223,6 +188,7 @@
                             </div>
                         </div>
 
+                        {/* 右侧选择区 */}
                         <div className="w-full h-[52%] md:w-[52%] md:h-full flex flex-col bg-white/40 overflow-hidden">
                             <div className="flex gap-2 p-3 overflow-x-auto custom-scrollbar border-b border-cyan-50 shrink-0">
                                 {['hair', 'face', 'clothes', 'suit', 'accessory', 'background'].map(tab => (
@@ -235,8 +201,15 @@
                             <div className="flex-1 overflow-y-auto p-4 custom-scrollbar">
                                 <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-3 gap-4">
                                     {ASSETS[activeTab].map(item => (
-                                        <div key={item.id} onClick={() => setSelections(p => ({...p, [activeTab]: p[activeTab]?.id === item.id ? (activeTab==='accessory'||activeTab==='suit'?null:p[activeTab]) : item, suit: activeTab==='suit'?item:(activeTab==='hair'||activeTab==='clothes'?null:p.suit), hair: activeTab==='suit'?null:(activeTab==='hair'?item:p.hair), clothes: activeTab==='suit'?null:(activeTab==='clothes'?item:p.clothes)}))}
-                                               className={`aspect-square rounded-[1.5rem] flex items-center justify-center cursor-pointer border-2 transition-all bg-white/90 active:scale-95 active:bg-cyan-50 ${selections[activeTab]?.id === item.id ? 'border-cyan-400 bg-cyan-50' : 'border-transparent hover:bg-white'}`}>
+                                        <div key={item.id} 
+                                               onClick={() => setSelections(p => ({
+                                                   ...p, 
+                                                   [activeTab]: p[activeTab]?.id === item.id ? (activeTab==='accessory'||activeTab==='suit'?null:p[activeTab]) : item, 
+                                                   suit: activeTab==='suit'?item:(activeTab==='hair'||activeTab==='clothes'?null:p.suit), 
+                                                   hair: activeTab==='suit'?null:(activeTab==='hair'?item:p.hair), 
+                                                   clothes: activeTab==='suit'?null:(activeTab==='clothes'?item:p.clothes)
+                                               }))}
+                                               className={`aspect-square rounded-[1.5rem] flex items-center justify-center cursor-pointer border-2 transition-all bg-white/90 active:scale-95 ${selections[activeTab]?.id === item.id ? 'border-cyan-400 bg-cyan-50' : 'border-transparent'}`}>
                                             <img src={getAssetUrl(item.url)} className="max-w-[85%] max-h-[85%] object-contain" crossOrigin="anonymous" />
                                         </div>
                                     ))}
@@ -245,6 +218,7 @@
                         </div>
                     </div>
 
+                    {/* 相片预览层 */}
                     {showPhoto && (
                         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/50 backdrop-blur-md">
                             <div className="bg-white p-3 pb-20 shadow-2xl rounded-sm max-w-[340px] w-full animate-photo-pop border-[12px] border-white relative">
@@ -254,19 +228,26 @@
                                 </div>
                                 <div className="absolute bottom-4 left-3 right-3 flex gap-3">
                                     <button onClick={() => setShowPhoto(false)} className="flex-1 py-3 bg-gray-100 text-gray-500 rounded-full font-bold active:scale-95 transition-all">返回</button>
-                                    <button onClick={async () => { if(isGenerating)return; setIsGenerating(true); const canvas = await html2canvas(photoRef.current, {useCORS:true, scale:3});
-                                        const link = document.createElement('a'); link.download=`Star_${Date.now()}.png`; link.href=canvas.toDataURL(); link.click(); setIsGenerating(false); }} className="flex-[2] py-3 bg-cyan-400 text-white rounded-full font-bold shadow-md active:scale-95 transition-all">保存相片</button>
+                                    <button onClick={async () => { 
+                                        if(isGenerating)return; 
+                                        setIsGenerating(true); 
+                                        const canvas = await html2canvas(photoRef.current, {useCORS:true, scale:3, backgroundColor:null});
+                                        const link = document.createElement('a'); 
+                                        link.download=`Star_${Date.now()}.png`; 
+                                        link.href=canvas.toDataURL(); 
+                                        link.click(); 
+                                        setIsGenerating(false); 
+                                    }} className="flex-[2] py-3 bg-cyan-400 text-white rounded-full font-bold shadow-md active:scale-95 transition-all">保存相片</button>
                                 </div>
                             </div>
                         </div>
                     )}
 
+                    {/* 开始提示 */}
                     {showStartHint && (
                         <div className="fixed inset-0 z-[200] bg-gradient-to-b from-[#E0F7FA] to-[#B2EBF2] flex flex-col items-center justify-center p-6" onClick={() => setShowStartHint(false)}>
                             <img src={getAssetUrl(START_HINT_IMAGE)} className="w-[85%] max-w-[450px] mb-12 drop-shadow-2xl animate-bounce" style={{animationDuration: '3s'}} />
-                            <button className="px-14 py-4 bg-white text-cyan-400 rounded-full text-2xl font-black shadow-xl active:scale-90 transition-all border-2 border-cyan-50">
-                                点击开始
-                            </button>
+                            <button className="px-14 py-4 bg-white text-cyan-400 rounded-full text-2xl font-black shadow-xl active:scale-90 transition-all border-2 border-cyan-50">点击开始</button>
                         </div>
                     )}
                 </div>
