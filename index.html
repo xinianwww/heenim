@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>宇宙大明星換衣間 - 完整保存版</title>
+    <title>宇宙大明星換衣間 - 完美终版</title>
     <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
@@ -51,7 +51,22 @@
             transform: translateZ(0);
         }
 
+        /* 拍立得旋转出现动画 */
+        @keyframes photoSpin {
+            0% { transform: scale(0.5) rotate(-15deg); opacity: 0; }
+            100% { transform: scale(1) rotate(0deg); opacity: 1; }
+        }
+        .animate-photo-spin {
+            animation: photoSpin 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+        }
+
         .custom-scrollbar::-webkit-scrollbar { width: 0px; height: 0px; }
+        
+        /* 禁用素材长按 */
+        .no-save {
+            pointer-events: none;
+            -webkit-touch-callout: none;
+        }
     </style>
 </head>
 <body>
@@ -102,7 +117,7 @@
             const [activeTab, setActiveTab] = useState('hair');
             const [showStartHint, setShowStartHint] = useState(true);
             const [showPhoto, setShowPhoto] = useState(false);
-            const [finalImage, setFinalImage] = useState(null); // 存储生成的图片
+            const [finalImage, setFinalImage] = useState(null);
             
             const accPosRef = useRef({ x: 0, y: 0 });
             const accDomRef = useRef(null);
@@ -144,16 +159,9 @@
             const generatePhoto = async () => {
                 if (!photoCaptureRef.current) return;
                 try {
-                    const canvas = await html2canvas(photoCaptureRef.current, {
-                        useCORS: true,
-                        scale: 3,
-                        backgroundColor: null
-                    });
-                    const dataUrl = canvas.toDataURL("image/png");
-                    setFinalImage(dataUrl);
-                } catch (err) {
-                    console.error("生成失败", err);
-                }
+                    const canvas = await html2canvas(photoCaptureRef.current, { useCORS: true, scale: 3, backgroundColor: null });
+                    setFinalImage(canvas.toDataURL("image/png"));
+                } catch (err) { console.error(err); }
             };
 
             const onPointerMove = (e) => {
@@ -167,7 +175,8 @@
             return (
                 <div className="w-full h-full flex items-center justify-center">
                     <div className="w-full h-full max-w-[1200px] flex flex-col md:flex-row bg-white/40 backdrop-blur-md md:h-[90vh] md:rounded-[3rem] overflow-hidden shadow-2xl">
-                        {/* 左侧展示 */}
+                        
+                        {/* 展示区 */}
                         <div className="w-full h-[48%] md:w-[48%] md:h-full relative flex flex-col border-b md:border-b-0 md:border-r border-cyan-100/30">
                             <div className="flex-1 p-4 relative overflow-hidden">
                                 <div className="outer-frame-container h-full aspect-[3/4] mx-auto relative">
@@ -200,7 +209,7 @@
                             </div>
                         </div>
 
-                        {/* 右侧列表 */}
+                        {/* 选择区 */}
                         <div className="w-full h-[52%] md:w-[52%] md:h-full flex flex-col bg-white/30">
                             <div className="flex gap-2 p-3 overflow-x-auto custom-scrollbar border-b border-cyan-50 shrink-0">
                                 {['hair', 'face', 'clothes', 'suit', 'accessory', 'background'].map(tab => (
@@ -215,7 +224,8 @@
                                     {ASSETS[activeTab].map(item => (
                                         <div key={item.id} onClick={() => handleSelect(item)} 
                                              className={`aspect-square rounded-[1.5rem] overflow-hidden flex items-center justify-center cursor-pointer border-2 transition-all bg-white active:scale-95 ${selections[activeTab]?.id === item.id ? 'border-cyan-400 bg-cyan-50' : 'border-transparent shadow-sm'}`}>
-                                            <img src={item.url} className={activeTab === 'background' ? "w-full h-full object-cover" : "max-w-[85%] max-h-[85%] object-contain"} />
+                                            {/* 禁用素材的长按保存 */}
+                                            <img src={item.url} draggable="false" className={`no-save ${activeTab === 'background' ? "w-full h-full object-cover" : "max-w-[85%] max-h-[85%] object-contain"}`} />
                                         </div>
                                     ))}
                                 </div>
@@ -223,10 +233,10 @@
                         </div>
                     </div>
 
-                    {/* 拍立得预览窗口 */}
+                    {/* 拍立得预览窗口 - 增加旋转动效 */}
                     {showPhoto && (
                         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/50 backdrop-blur-md" onClick={() => setShowPhoto(false)}>
-                            <div className="bg-white p-3 pb-20 shadow-2xl rounded-sm max-w-[340px] w-full border-[12px] border-white relative" onClick={e => e.stopPropagation()}>
+                            <div className="bg-white p-3 pb-20 shadow-2xl rounded-sm max-w-[340px] w-full border-[12px] border-white relative animate-photo-spin" onClick={e => e.stopPropagation()}>
                                 <div ref={photoCaptureRef} className="aspect-[3/4] bg-gray-50 overflow-hidden relative">
                                     <ImageLayer src={selections.background?.url} zIndex={0} isBackground={true} />
                                     <img src={BODY_IMAGE} className="character-layer" style={{zIndex:10}} crossOrigin="anonymous" />
@@ -248,10 +258,10 @@
                         </div>
                     )}
 
-                    {/* 最终生成的图片 - 提供给用户长按保存 */}
+                    {/* 最终生成的图片 - 此处允许长按保存 */}
                     {finalImage && (
                         <div className="fixed inset-0 z-[210] bg-black/80 flex flex-col items-center justify-center p-6" onClick={() => setFinalImage(null)}>
-                            <div className="relative animate-photo-pop" onClick={e => e.stopPropagation()}>
+                            <div className="relative animate-photo-spin" onClick={e => e.stopPropagation()}>
                                 <img src={finalImage} className="max-w-full max-h-[70vh] rounded-lg shadow-2xl border-4 border-white" />
                                 <div className="mt-6 text-white text-center">
                                     <p className="text-xl font-bold mb-2">✨ 照片已生成 ✨</p>
