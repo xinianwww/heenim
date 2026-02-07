@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>宇宙大明星換衣間 - 极致稳定版</title>
+    <title>宇宙大明星換衣間 - 完美稳定版</title>
     <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
@@ -19,7 +19,8 @@
         
         body, html, #root { 
             height: 100%; width: 100%; margin: 0; padding: 0; overflow: hidden;
-            background: #B2EBF2;
+            /* 恢复原有的蓝色过渡背景 */
+            background: linear-gradient(180deg, #E0F7FA 0%, #B2EBF2 100%);
         }
 
         .character-layer {
@@ -29,16 +30,10 @@
             height: 100%;
             object-fit: contain;
             pointer-events: none;
-            /* 强制开启硬件加速，防止重绘闪烁 */
             transform: translateZ(0);
             -webkit-transform: translateZ(0);
             backface-visibility: hidden;
             -webkit-backface-visibility: hidden;
-        }
-
-        /* 重点：防止图片未加载时出现白块，容器背景设为透明或保持一致 */
-        .layer-container {
-            background-color: transparent !important;
         }
 
         .outer-frame-container {
@@ -59,18 +54,17 @@
     <script type="text/babel">
         const { useState, useEffect, useRef, memo, useCallback } = React;
 
-        // 资源处理函数
         const getAssetUrl = (url) => {
             if (!url) return "";
             return url.trim().replace('github.com', 'raw.githubusercontent.com').replace('/blob/', '/');
         };
 
         const BODY_IMAGE = getAssetUrl("https://github.com/xinianwww/xinianwwww/blob/main/%E8%BA%AB%E4%BD%93.png");
-        
-        // 1. 优化图片层组件：使用双层隐藏切换逻辑
+
+        // 双缓冲组件，彻底杜绝闪白
         const ImageLayer = memo(({ src, zIndex }) => {
             const [displaySrc, setDisplaySrc] = useState(src);
-            const [loadingSrc, setLoadingSrc] = useState(null);
+            const [pendingSrc, setPendingSrc] = useState(null);
 
             useEffect(() => {
                 if (src !== displaySrc) {
@@ -78,9 +72,9 @@
                     img.src = src;
                     img.onload = () => {
                         setDisplaySrc(src);
-                        setLoadingSrc(null);
+                        setPendingSrc(null);
                     };
-                    setLoadingSrc(src);
+                    setPendingSrc(src);
                 }
             }, [src]);
 
@@ -91,20 +85,26 @@
             );
         });
 
-        // 2. 优化列表项组件：防止点击时整个列表抖动
         const AssetIcon = memo(({ item, isSelected, onClick }) => (
             <div onClick={() => onClick(item)} 
-                 className={`aspect-square rounded-[1.5rem] flex items-center justify-center cursor-pointer border-2 transition-all bg-white active:scale-95 ${isSelected ? 'border-cyan-400 bg-cyan-50' : 'border-transparent'}`}>
+                 className={`aspect-square rounded-[1.5rem] flex items-center justify-center cursor-pointer border-2 transition-all bg-white active:scale-95 ${isSelected ? 'border-cyan-400 bg-cyan-50' : 'border-transparent shadow-sm'}`}>
                 <img src={item.url} className="max-w-[85%] max-h-[85%] object-contain" />
             </div>
         ));
 
         const App = () => {
+            const ASSETS = useRef({
+                hair: Array.from({length: 10}, (_, i) => ({ id: `h${i+1}`, url: getAssetUrl(`https://github.com/xinianwww/xinianwwww/blob/main/%E5%A4%B4%E5%8F%91${i+1}.png`) })),
+                face: Array.from({length: 5}, (_, i) => ({ id: `f${i+1}`, url: getAssetUrl(`https://github.com/xinianwww/xinianwwww/blob/main/%E8%A1%A8%E6%83%85${i+1}.png`) })),
+                clothes: Array.from({length: 12}, (_, i) => ({ id: `c${i+1}`, url: getAssetUrl(`https://github.com/xinianwww/xinianwwww/blob/main/%E8%A1%A3%E6%9C%8D${i+1}.png`) })),
+                accessory: Array.from({length: 11}, (_, i) => ({ id: `a${i+1}`, url: getAssetUrl(`https://github.com/xinianwww/xinianwwww/blob/main/sp${i+1}.png`) })),
+                suit: Array.from({length: 5}, (_, i) => ({ id: `s${i+1}`, url: getAssetUrl(`https://github.com/xinianwww/xinianwwww/blob/main/%E5%A5%97%E8%A3%85${i+1}.png`) })),
+                background: Array.from({length: 6}, (_, i) => ({ id: `bg${i+1}`, url: getAssetUrl(`https://github.com/xinianwww/xinianwwww/blob/main/%E8%83%8C%E6%99%AF${i+1}.png`) }))
+            }).current;
+
             const [selections, setSelections] = useState({
-                hair: { id: 'h1', url: getAssetUrl("https://github.com/xinianwww/xinianwwww/blob/main/%E5%A4%B4%E5%8F%911.png") },
-                face: { id: 'f1', url: getAssetUrl("https://github.com/xinianwww/xinianwwww/blob/main/%E8%A1%A8%E6%83%851.png") },
-                clothes: { id: 'c1', url: getAssetUrl("https://github.com/xinianwww/xinianwwww/blob/main/%E8%A1%A3%E6%9C%8D1.png") },
-                accessory: null, background: { id: 'bg1', url: getAssetUrl("https://github.com/xinianwww/xinianwwww/blob/main/%E8%83%8C%E6%99%AF1.png") }, suit: null
+                hair: ASSETS.hair[0], face: ASSETS.face[0], clothes: ASSETS.clothes[0],
+                accessory: null, background: ASSETS.background[0], suit: null
             });
             const [activeTab, setActiveTab] = useState('hair');
             const [showStartHint, setShowStartHint] = useState(true);
@@ -115,20 +115,12 @@
             const isDragging = useRef(false);
             const dragStart = useRef({ x: 0, y: 0 });
 
-            const ASSETS = useRef({
-                hair: Array.from({length: 10}, (_, i) => ({ id: `h${i+1}`, url: getAssetUrl(`https://github.com/xinianwww/xinianwwww/blob/main/%E5%A4%B4%E5%8F%91${i+1}.png`) })),
-                face: Array.from({length: 5}, (_, i) => ({ id: `f${i+1}`, url: getAssetUrl(`https://github.com/xinianwww/xinianwwww/blob/main/%E8%A1%A8%E6%83%85${i+1}.png`) })),
-                clothes: Array.from({length: 12}, (_, i) => ({ id: `c${i+1}`, url: getAssetUrl(`https://github.com/xinianwww/xinianwwww/blob/main/%E8%A1%A3%E6%9C%8D${i+1}.png`) })),
-                accessory: Array.from({length: 11}, (_, i) => ({ id: `a${i+1}`, url: getAssetUrl(`https://github.com/xinianwww/xinianwwww/blob/main/sp${i+1}.png`) })),
-                suit: Array.from({length: 5}, (_, i) => ({ id: `s${i+1}`, url: getAssetUrl(`https://github.com/xinianwww/xinianwwww/blob/main/%E5%A5%97%E8%A3%85${i+1}.png`) })),
-                background: Array.from({length: 6}, (_, i) => ({ id: `bg${i+1}`, url: getAssetUrl(`https://github.com/xinianwww/xinianwwww/blob/main/%E8%83%8C%E6%99%AF${i+1}.png`) }))
-            }).current;
-
             const handleSelect = useCallback((item) => {
                 setSelections(p => {
                     const newState = { ...p };
                     if (activeTab === 'suit') {
-                        newState.suit = item; newState.hair = null; newState.clothes = null;
+                        // 逻辑：穿套装时，脱掉发型、衣服、饰品
+                        newState.suit = item; newState.hair = null; newState.clothes = null; newState.accessory = null;
                     } else if (activeTab === 'hair' || activeTab === 'clothes') {
                         newState[activeTab] = item; newState.suit = null;
                     } else if (activeTab === 'accessory') {
@@ -142,7 +134,20 @@
                 });
             }, [activeTab]);
 
-            // 拖动逻辑
+            // 恢复原有的随机逻辑
+            const handleRandom = () => {
+                const pick = (arr) => arr[Math.floor(Math.random() * arr.length)];
+                const useSuit = Math.random() > 0.7; 
+                accPosRef.current = { x: 0, y: 0 };
+                if (accDomRef.current) accDomRef.current.style.transform = `translate3d(0,0,0)`;
+
+                if (useSuit) {
+                    setSelections({ hair: null, clothes: null, accessory: null, face: pick(ASSETS.face), suit: pick(ASSETS.suit), background: pick(ASSETS.background) });
+                } else {
+                    setSelections({ suit: null, hair: pick(ASSETS.hair), face: pick(ASSETS.face), clothes: pick(ASSETS.clothes), accessory: Math.random() > 0.5 ? pick(ASSETS.accessory) : null, background: pick(ASSETS.background) });
+                }
+            };
+
             const onPointerMove = (e) => {
                 if (!isDragging.current || !accDomRef.current) return;
                 const x = e.clientX - dragStart.current.x;
@@ -152,12 +157,12 @@
             };
 
             return (
-                <div className="w-full h-full flex items-center justify-center">
-                    <div className="w-full h-full max-w-[1200px] flex flex-col md:flex-row bg-white/60 md:h-[90vh] md:rounded-[3rem] overflow-hidden shadow-2xl">
+                <div className="w-full h-full flex items-center justify-center p-0 md:p-4">
+                    <div className="w-full h-full max-w-[1200px] flex flex-col md:flex-row bg-white/40 backdrop-blur-md md:h-[90vh] md:rounded-[3rem] overflow-hidden shadow-2xl">
                         
                         {/* 展示区 */}
-                        <div className="w-full h-[48%] md:w-[48%] md:h-full relative flex flex-col bg-white">
-                            <div className="flex-1 p-4 relative overflow-hidden layer-container">
+                        <div className="w-full h-[48%] md:w-[48%] md:h-full relative flex flex-col border-b md:border-b-0 md:border-r border-cyan-100/30">
+                            <div className="flex-1 p-4 relative overflow-hidden">
                                 <div className="outer-frame-container h-full aspect-[3/4] mx-auto relative">
                                     <ImageLayer src={selections.background?.url} zIndex={0} />
                                     <img src={BODY_IMAGE} className="character-layer" style={{zIndex:10}} crossOrigin="anonymous" />
@@ -182,18 +187,18 @@
                             </div>
                             
                             <div className="absolute bottom-6 left-0 right-0 flex justify-center gap-8 z-[70]">
-                                <button onClick={() => window.location.reload()} className="w-12 h-12 bg-white rounded-full shadow-lg text-cyan-400 flex items-center justify-center border border-cyan-50">
+                                <button onClick={handleRandom} className="w-12 h-12 bg-white rounded-full shadow-lg text-cyan-400 flex items-center justify-center border border-cyan-50 active:scale-90 transition-transform">
                                     <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M21 2v6h-6"/><path d="M3 12a9 9 0 0 1 15-6.7L21 8"/><path d="M3 22v-6h6"/><path d="M21 12a9 9 0 0 1-15 6.7L3 16"/></svg>
                                 </button>
-                                <button onClick={() => setShowPhoto(true)} className="w-12 h-12 bg-cyan-400 text-white rounded-full shadow-lg flex items-center justify-center">
+                                <button onClick={() => setShowPhoto(true)} className="w-12 h-12 bg-cyan-400 text-white rounded-full shadow-lg flex items-center justify-center active:scale-90 transition-transform">
                                     <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z"/><circle cx="12" cy="13" r="3"/></svg>
                                 </button>
                             </div>
                         </div>
 
                         {/* 选择区 */}
-                        <div className="w-full h-[52%] md:w-[52%] md:h-full flex flex-col bg-white/80">
-                            <div className="flex gap-2 p-3 overflow-x-auto custom-scrollbar border-b border-cyan-50">
+                        <div className="w-full h-[52%] md:w-[52%] md:h-full flex flex-col bg-white/30">
+                            <div className="flex gap-2 p-3 overflow-x-auto custom-scrollbar border-b border-cyan-50 shrink-0">
                                 {['hair', 'face', 'clothes', 'suit', 'accessory', 'background'].map(tab => (
                                     <button key={tab} onClick={() => setActiveTab(tab)}
                                         className={`px-5 py-2 rounded-full whitespace-nowrap font-bold transition-all text-sm ${activeTab === tab ? 'bg-cyan-500 text-white shadow-md' : 'text-cyan-400 bg-white'}`}>
@@ -202,7 +207,7 @@
                                 ))}
                             </div>
                             <div className="flex-1 overflow-y-auto p-4 custom-scrollbar">
-                                <div className="grid grid-cols-3 sm:grid-cols-4 gap-4">
+                                <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-3 gap-4">
                                     {ASSETS[activeTab].map(item => (
                                         <AssetIcon key={item.id} item={item} isSelected={selections[activeTab]?.id === item.id} onClick={handleSelect} />
                                     ))}
@@ -211,10 +216,34 @@
                         </div>
                     </div>
 
+                    {showPhoto && (
+                        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/50 backdrop-blur-md" onClick={() => setShowPhoto(false)}>
+                            <div className="bg-white p-3 pb-20 shadow-2xl rounded-sm max-w-[340px] w-full border-[12px] border-white relative" onClick={e => e.stopPropagation()}>
+                                <div className="aspect-[3/4] bg-gray-50 overflow-hidden relative">
+                                    <ImageLayer src={selections.background?.url} zIndex={0} />
+                                    <img src={BODY_IMAGE} className="character-layer" style={{zIndex:10}} />
+                                    <ImageLayer src={selections.face?.url} zIndex={20} />
+                                    <ImageLayer src={selections.clothes?.url} zIndex={30} />
+                                    <ImageLayer src={selections.suit?.url} zIndex={30} />
+                                    <ImageLayer src={selections.hair?.url} zIndex={40} />
+                                    {selections.accessory && (
+                                        <div className="acc-layer-wrapper" style={{zIndex:50, transform: `translate3d(${accPosRef.current.x}px, ${accPosRef.current.y}px, 0)`}}>
+                                            <img src={selections.accessory.url} className="character-layer" />
+                                        </div>
+                                    )}
+                                </div>
+                                <div className="absolute bottom-4 left-3 right-3 flex gap-3">
+                                    <button onClick={() => setShowPhoto(false)} className="flex-1 py-3 bg-gray-100 text-gray-500 rounded-full font-bold">返回</button>
+                                    <button onClick={() => alert('长按保存图片或截图分享')} className="flex-[2] py-3 bg-cyan-400 text-white rounded-full font-bold shadow-md">保存相片</button>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+
                     {showStartHint && (
-                        <div className="fixed inset-0 z-[200] bg-[#B2EBF2] flex flex-col items-center justify-center p-6" onClick={() => setShowStartHint(false)}>
-                            <img src={getAssetUrl("https://github.com/xinianwww/xinianwwww/blob/main/tishi.png")} className="w-[80%] max-w-[400px] mb-12 animate-bounce" />
-                            <button className="px-14 py-4 bg-white text-cyan-400 rounded-full text-2xl font-black shadow-xl">点击开始</button>
+                        <div className="fixed inset-0 z-[200] bg-gradient-to-b from-[#E0F7FA] to-[#B2EBF2] flex flex-col items-center justify-center p-6" onClick={() => setShowStartHint(false)}>
+                            <img src={getAssetUrl("https://github.com/xinianwww/xinianwwww/blob/main/tishi.png")} className="w-[80%] max-w-[400px] mb-12 animate-bounce drop-shadow-2xl" />
+                            <button className="px-14 py-4 bg-white text-cyan-400 rounded-full text-2xl font-black shadow-xl border-2 border-cyan-50">点击开始</button>
                         </div>
                     )}
                 </div>
