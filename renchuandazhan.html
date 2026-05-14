@@ -1,0 +1,314 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>仁川大战</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
+            background-color: #000;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            user-select: none;
+            touch-action: none;
+        }
+        #game-wrapper {
+            position: relative;
+            width: 100vw;
+            height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            background: #1a1a1a;
+        }
+        #game-container {
+            position: relative;
+            width: 100%;
+            max-width: 500px;
+            height: 100%;
+            background: #fff;
+            overflow: hidden;
+        }
+        canvas {
+            display: block;
+            width: 100%;
+            height: 100%;
+        }
+        .overlay {
+            position: absolute;
+            inset: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 20;
+            padding: 20px;
+            text-align: center;
+            background: rgba(255, 255, 255, 0.95);
+        }
+        .hidden { display: none !important; }
+        .btn {
+            background: #3b82f6;
+            color: white;
+            padding: 15px 40px;
+            border-radius: 50px;
+            font-size: 1.2rem;
+            font-weight: bold;
+            border: none;
+            cursor: pointer;
+            box-shadow: 0 4px 15px rgba(59, 130, 246, 0.3);
+            margin-top: 20px;
+            transition: transform 0.1s;
+            -webkit-tap-highlight-color: transparent;
+        }
+        .btn:active { transform: scale(0.95); }
+        .loading-dots:after {
+            content: '.';
+            animation: dots 1.5s steps(5, end) infinite;
+        }
+        @keyframes dots { 0%, 20% { content: '.'; } 40% { content: '..'; } 60% { content: '...'; } 80%, 100% { content: ''; } }
+    </style>
+</head>
+<body>
+
+<div id="game-wrapper">
+    <div id="game-container">
+        <!-- 加载界面 -->
+        <div id="loading-screen" class="overlay">
+            <div class="text-2xl font-bold text-blue-600 mb-2 loading-dots">素材加载中</div>
+            <p class="text-gray-500">正在布置舞台...</p>
+        </div>
+
+        <!-- 封面界面 -->
+        <div id="start-screen" class="overlay hidden">
+            <h1 class="text-4xl font-black text-blue-600 mb-4">仁川大战</h1>
+            <p class="text-lg text-gray-700 leading-relaxed px-4">
+                要上台了，你被迫和利特粘在了一起，<br>
+                快速点击让你们两个分开吧！
+            </p>
+            <button class="btn" id="start-btn">开始游戏</button>
+        </div>
+
+        <!-- 结算界面 -->
+        <div id="result-screen" class="overlay hidden">
+            <h2 id="result-rank" class="text-7xl font-black mb-2 italic">A</h2>
+            <p id="result-comment" class="text-lg text-gray-700 mb-6 px-6 font-bold leading-relaxed"></p>
+            <p class="text-sm text-gray-400 mb-1">推开距离</p>
+            <p id="result-dist" class="text-4xl font-bold text-blue-600 mb-8">0 cm</p>
+            <button class="btn" id="retry-btn">重新挑战</button>
+        </div>
+
+        <canvas id="gameCanvas"></canvas>
+        
+        <!-- 游戏运行中的UI -->
+        <div id="game-ui" class="absolute top-10 left-0 w-full flex justify-between px-6 pointer-events-none hidden" style="z-index:10">
+            <div class="bg-white/90 backdrop-blur px-4 py-2 rounded-2xl shadow-sm border border-blue-100">
+                <span class="text-gray-500 text-xs font-bold">时间</span>
+                <div id="ui-timer" class="text-2xl font-black text-blue-600">10.0s</div>
+            </div>
+            <div class="bg-white/90 backdrop-blur px-4 py-2 rounded-2xl shadow-sm border border-blue-100 text-right">
+                <span class="text-gray-500 text-xs font-bold">距离</span>
+                <div id="ui-dist" class="text-2xl font-black text-blue-600">0 cm</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    const canvas = document.getElementById('gameCanvas');
+    const ctx = canvas.getContext('2d');
+    const loadingScreen = document.getElementById('loading-screen');
+    const startScreen = document.getElementById('start-screen');
+    const resultScreen = document.getElementById('result-screen');
+    const gameUI = document.getElementById('game-ui');
+
+    // 资源定义
+    const ASSETS = {
+        bg: 'https://raw.githubusercontent.com/xinianwww/heenim/main/export.png',
+        lt: 'https://raw.githubusercontent.com/xinianwww/heenim/main/lt.png',
+        xc: 'https://raw.githubusercontent.com/xinianwww/heenim/main/xc.png'
+    };
+
+    const imgs = {};
+    let width, height, dpr;
+    let gameState = 'LOADING';
+    let timeLeft = 10;
+    let distance = 0;
+    let velocity = 0;
+    let lastTime = 0;
+
+    // --- 难度下调后的黄金参数 (修复了重复声明错误) ---
+    const FRICTION = 0.945;       // 摩擦力：滑行更顺畅
+    const CLICK_IMPULSE = 55;     // 点击冲力：每下推得更远
+    const ELASTIC_FORCE = 0.003;  // 弹性拉力：更小，容易拉开
+    const BASE_PULL = 5;          // 基础回缩力
+
+    function resize() {
+        dpr = window.devicePixelRatio || 1;
+        const rect = canvas.getBoundingClientRect();
+        width = rect.width;
+        height = rect.height;
+        canvas.width = width * dpr;
+        canvas.height = height * dpr;
+        ctx.scale(dpr, dpr);
+        if (gameState !== 'PLAYING' && gameState !== 'LOADING') render();
+    }
+
+    function initAssets() {
+        let loaded = 0;
+        const keys = Object.keys(ASSETS);
+        keys.forEach(key => {
+            const img = new Image();
+            img.crossOrigin = "anonymous";
+            img.src = ASSETS[key];
+            img.onload = () => {
+                loaded++;
+                if (loaded === keys.length) {
+                    gameState = 'READY';
+                    loadingScreen.classList.add('hidden');
+                    startScreen.classList.remove('hidden');
+                    resize();
+                }
+            };
+            imgs[key] = img;
+        });
+    }
+
+    function startGame() {
+        gameState = 'PLAYING';
+        startScreen.classList.add('hidden');
+        resultScreen.classList.add('hidden');
+        gameUI.classList.remove('hidden');
+        distance = 0;
+        velocity = 0;
+        timeLeft = 10.0;
+        lastTime = performance.now();
+        requestAnimationFrame(update);
+    }
+
+    function update(now) {
+        if (gameState !== 'PLAYING') return;
+        const dt = (now - lastTime) / 1000;
+        lastTime = now;
+        timeLeft -= dt;
+        if (timeLeft <= 0) { timeLeft = 0; endGame(); }
+
+        // 物理逻辑
+        const pull = (distance * distance * ELASTIC_FORCE) + (distance > 2 ? BASE_PULL : 0);
+        velocity -= pull;
+        velocity *= FRICTION;
+        distance += velocity * dt;
+
+        if (distance < 0) { distance = 0; velocity = 0; }
+        
+        const maxDist = width * 0.48;
+        if (distance > maxDist) distance = maxDist;
+
+        render();
+        document.getElementById('ui-timer').innerText = timeLeft.toFixed(1) + 's';
+        document.getElementById('ui-dist').innerText = Math.floor(distance) + ' cm';
+        requestAnimationFrame(update);
+    }
+
+    function drawCharacter(offset, type) {
+        const img = imgs[type];
+        if (img && img.complete) {
+            const ratio = img.naturalHeight / img.naturalWidth;
+            const maxHeight = height * 0.7; 
+            let drawW = width * 0.65; 
+            let drawH = drawW * ratio;
+
+            if (drawH > maxHeight) {
+                drawH = maxHeight;
+                drawW = drawH / ratio;
+            }
+
+            const overlapAdjustment = 5; // 增加 5px 的重叠，让两人完全粘住
+            let xPos;
+            if (type === 'lt') {
+                // 向右偏移 adjustment
+                xPos = (width / 2) - offset - drawW + overlapAdjustment;
+            } else {
+                // 向左偏移 adjustment
+                xPos = (width / 2) + offset - overlapAdjustment;
+            }
+            const yPos = height - drawH; 
+            ctx.drawImage(img, xPos, yPos, drawW, drawH);
+        }
+    }
+
+    function render() {
+        ctx.clearRect(0, 0, width, height);
+        // 背景
+        if (imgs.bg && imgs.bg.complete) {
+            const imgAspect = imgs.bg.width / imgs.bg.height;
+            const canvasAspect = width / height;
+            let drawW, drawH;
+            if (canvasAspect > imgAspect) {
+                drawW = width; drawH = width / imgAspect;
+            } else {
+                drawH = height; drawW = height * imgAspect;
+            }
+            ctx.drawImage(imgs.bg, (width - drawW) / 2, (height - drawH) / 2, drawW, drawH);
+        }
+        drawCharacter(distance, 'lt');
+        drawCharacter(distance, 'xc');
+    }
+
+    function endGame() {
+        gameState = 'RESULT';
+        gameUI.classList.add('hidden');
+        resultScreen.classList.remove('hidden');
+        const finalDist = Math.floor(distance);
+        document.getElementById('result-dist').innerText = finalDist + ' cm';
+        
+        let rank = 'F';
+        let comment = '';
+        let color = '#64748b';
+
+        // 4个等级划分
+        if (finalDist > 180) {
+            rank = 'A';
+            comment = "这次仁川大战看来superjunior是真的要解散了";
+            color = "#ef4444"; 
+        } else if (finalDist > 80) {
+            rank = 'B';
+            comment = "距离产生美，下台了再打一架吧。";
+            color = "#3b82f6"; 
+        } else if (finalDist > 15) {
+            rank = 'C';
+            comment = "你就这么不想和利特分开吗？";
+            color = "#10b981"; 
+        } else {
+            rank = 'F';
+            comment = "说实话，你就是想贴着利特吧";
+            color = "#64748b"; 
+        }
+        
+        const rankEl = document.getElementById('result-rank');
+        const commentEl = document.getElementById('result-comment');
+        
+        rankEl.innerText = rank; 
+        rankEl.style.color = color;
+        commentEl.innerText = comment;
+    }
+
+    function handleAction(e) {
+        if (gameState === 'PLAYING') {
+            if (e.cancelable) e.preventDefault();
+            velocity += CLICK_IMPULSE;
+        }
+    }
+
+    document.getElementById('start-btn').onclick = startGame;
+    document.getElementById('retry-btn').onclick = startGame;
+    window.addEventListener('mousedown', handleAction);
+    window.addEventListener('touchstart', handleAction, { passive: false });
+    window.addEventListener('resize', resize);
+    window.onload = () => { resize(); initAssets(); };
+</script>
+</body>
+</html>
